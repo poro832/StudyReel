@@ -8,6 +8,6 @@ void main() {
       const ProviderScope(child: StudyReelApp()),
     );
     await tester.pumpAndSettle();
-    expect(find.text('온보딩 화면 (Task 3에서 구현)'), findsOneWidget);
+    expect(find.text('어떤 걸\n배우고 싶나요?'), findsOneWidget);
   });
 }
