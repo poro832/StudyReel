@@ -21,7 +21,8 @@ studyreel/
 │   │   └── theme.dart                     # 다크 테마, 색상 상수
 │   ├── data/
 │   │   ├── models/
-│   │   │   ├── study_card.dart            # 학습 카드 데이터 모델
+│   │   │   ├── study_card.dart            # 학습 카드 데이터 모델 (퀴즈 포함)
+│   │   │   ├── quiz.dart                  # 퀴즈 모델 (4지선다)
 │   │   │   └── youtube_short.dart         # 유튜브 쇼츠 데이터 모델
 │   │   ├── repositories/
 │   │   │   ├── card_repository.dart       # Firestore 카드 CRUD
@@ -31,7 +32,8 @@ studyreel/
 │   ├── domain/
 │   │   ├── card_provider.dart             # 카드 피드 상태 (Riverpod)
 │   │   ├── auth_provider.dart             # 로그인 상태 (Riverpod)
-│   │   └── topic_provider.dart            # 관심사 선택 상태 (Riverpod)
+│   │   ├── topic_provider.dart            # 관심사 선택 상태 (Riverpod)
+│   │   └── streak_provider.dart           # 스트릭/오늘 목표 상태 (Riverpod)
 │   └── presentation/
 │       ├── onboarding/
 │       │   └── onboarding_screen.dart     # 관심사 선택 화면
@@ -630,7 +632,13 @@ async function generateCards(topics, count = 5) {
   "title": "개념 제목 (15자 이내)",
   "oneLiner": "한 줄 설명 (30자 이내)",
   "points": ["핵심 포인트 1", "핵심 포인트 2", "핵심 포인트 3"],
-  "keywords": ["검색 키워드1", "검색 키워드2"]
+  "keywords": ["검색 키워드1", "검색 키워드2"],
+  "quiz": {
+    "question": "이 개념에 대한 객관식 질문 1개",
+    "options": ["선택지A", "선택지B", "선택지C", "선택지D"],
+    "answerIndex": 0,
+    "hint": "틀렸을 때 보여줄 힌트 1문장"
+  }
 }
 
 JSON 배열만 반환하세요. 다른 텍스트 없이.`,
@@ -722,6 +730,7 @@ git commit -m "feat: Cloud Functions + Claude API 카드 생성 함수"
 
 **Files:**
 - Create: `studyreel/lib/data/models/study_card.dart`
+- Create: `studyreel/lib/data/models/quiz.dart`
 - Create: `studyreel/lib/data/repositories/card_repository.dart`
 - Create: `studyreel/lib/domain/card_provider.dart`
 - Create: `studyreel/test/models/study_card_test.dart`
@@ -773,6 +782,34 @@ Expected: FAIL
 `lib/data/models/study_card.dart`:
 
 ```dart
+class Quiz {
+  final String question;
+  final List<String> options;
+  final int answerIndex;
+  final String hint;
+
+  const Quiz({
+    required this.question,
+    required this.options,
+    required this.answerIndex,
+    required this.hint,
+  });
+
+  factory Quiz.fromJson(Map<String, dynamic> json) => Quiz(
+        question: json['question'] as String,
+        options: List<String>.from(json['options'] as List),
+        answerIndex: json['answerIndex'] as int,
+        hint: json['hint'] as String,
+      );
+
+  Map<String, dynamic> toJson() => {
+        'question': question,
+        'options': options,
+        'answerIndex': answerIndex,
+        'hint': hint,
+      };
+}
+
 class StudyCard {
   final String id;
   final String topic;
@@ -780,6 +817,8 @@ class StudyCard {
   final String oneLiner;
   final List<String> points;
   final List<String> keywords;
+  final Quiz? quiz;
+  final bool isBookmarked;
 
   const StudyCard({
     required this.id,
@@ -788,6 +827,8 @@ class StudyCard {
     required this.oneLiner,
     required this.points,
     required this.keywords,
+    this.quiz,
+    this.isBookmarked = false,
   });
 
   factory StudyCard.fromJson(Map<String, dynamic> json) => StudyCard(
@@ -797,6 +838,10 @@ class StudyCard {
         oneLiner: json['oneLiner'] as String,
         points: List<String>.from(json['points'] as List),
         keywords: List<String>.from(json['keywords'] as List),
+        quiz: json['quiz'] != null
+            ? Quiz.fromJson(json['quiz'] as Map<String, dynamic>)
+            : null,
+        isBookmarked: json['isBookmarked'] as bool? ?? false,
       );
 
   Map<String, dynamic> toJson() => {
@@ -806,7 +851,15 @@ class StudyCard {
         'oneLiner': oneLiner,
         'points': points,
         'keywords': keywords,
+        if (quiz != null) 'quiz': quiz!.toJson(),
+        'isBookmarked': isBookmarked,
       };
+
+  StudyCard copyWith({bool? isBookmarked}) => StudyCard(
+        id: id, topic: topic, title: title, oneLiner: oneLiner,
+        points: points, keywords: keywords, quiz: quiz,
+        isBookmarked: isBookmarked ?? this.isBookmarked,
+      );
 }
 ```
 
@@ -970,8 +1023,9 @@ git commit -m "feat: StudyCard 모델, CardRepository, CardProvider 구현"
 **Files:**
 - Create: `studyreel/lib/presentation/feed/card_widget.dart`
 - Create: `studyreel/lib/presentation/feed/feed_screen.dart`
+- Modify: `studyreel/lib/data/repositories/card_repository.dart` (toggleBookmark 추가)
 
-- [ ] **Step 1: CardWidget 구현**
+- [ ] **Step 1: CardWidget 구현 (북마크 버튼 포함)**
 
 `lib/presentation/feed/card_widget.dart`:
 
@@ -983,8 +1037,14 @@ import '../../data/models/study_card.dart';
 class CardWidget extends StatelessWidget {
   final StudyCard card;
   final VoidCallback onTap;
+  final VoidCallback onBookmark;
 
-  const CardWidget({super.key, required this.card, required this.onTap});
+  const CardWidget({
+    super.key,
+    required this.card,
+    required this.onTap,
+    required this.onBookmark,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -1044,20 +1104,48 @@ class CardWidget extends StatelessWidget {
                     ),
                   )),
               const Spacer(),
-              // 유튜브 연결 버튼
-              Container(
-                width: double.infinity,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: kRedAccent.withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: kRedAccent.withOpacity(0.5)),
-                ),
-                child: const Center(
-                  child: Text('▶  관련 유튜브 쇼츠 보기',
-                      style: TextStyle(color: Color(0xFFFF8080), fontSize: 14,
-                          fontWeight: FontWeight.w500)),
-                ),
+              // 하단 버튼 행 (북마크 + 유튜브)
+              Row(
+                children: [
+                  // 북마크 버튼
+                  GestureDetector(
+                    onTap: onBookmark,
+                    child: Container(
+                      width: 48, height: 48,
+                      decoration: BoxDecoration(
+                        color: card.isBookmarked
+                            ? kPrimaryColor.withOpacity(0.2)
+                            : kCardColor,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: card.isBookmarked ? kPrimaryColor : Colors.white24,
+                        ),
+                      ),
+                      child: Icon(
+                        card.isBookmarked ? Icons.bookmark : Icons.bookmark_border,
+                        color: card.isBookmarked ? kPrimaryColor : kTextGray,
+                        size: 20,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  // 유튜브 연결 버튼
+                  Expanded(
+                    child: Container(
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: kRedAccent.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: kRedAccent.withOpacity(0.5)),
+                      ),
+                      child: const Center(
+                        child: Text('▶  관련 유튜브 쇼츠 보기',
+                            style: TextStyle(color: Color(0xFFFF8080), fontSize: 14,
+                                fontWeight: FontWeight.w500)),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -1415,6 +1503,11 @@ class CardDetailScreen extends ConsumerWidget {
                       ],
                     ),
                   ),
+                  // 퀴즈 섹션 (quiz가 있을 때만 표시)
+                  if (card.quiz != null) ...[
+                    const SizedBox(height: 24),
+                    _QuizWidget(quiz: card.quiz!),
+                  ],
                   const SizedBox(height: 32),
                   const Text('관련 유튜브 쇼츠',
                       style: TextStyle(
@@ -1440,6 +1533,103 @@ class CardDetailScreen extends ConsumerWidget {
           body: Center(child: CircularProgressIndicator())),
       error: (e, _) => Scaffold(
           body: Center(child: Text('오류: $e'))),
+    );
+  }
+}
+
+class _QuizWidget extends StatefulWidget {
+  final Quiz quiz;
+  const _QuizWidget({required this.quiz});
+
+  @override
+  State<_QuizWidget> createState() => _QuizWidgetState();
+}
+
+class _QuizWidgetState extends State<_QuizWidget> {
+  int? _selected;
+  bool _showHint = false;
+
+  bool get _isCorrect => _selected == widget.quiz.answerIndex;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: kCardColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(children: [
+            const Text('🧠 ', style: TextStyle(fontSize: 14)),
+            const Text('퀴즈',
+                style: TextStyle(
+                    color: kPrimaryColor,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600)),
+          ]),
+          const SizedBox(height: 10),
+          Text(widget.quiz.question,
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+          const SizedBox(height: 12),
+          ...List.generate(widget.quiz.options.length, (i) {
+            Color borderColor = Colors.white12;
+            Color bgColor = Colors.transparent;
+            if (_selected != null) {
+              if (i == widget.quiz.answerIndex) {
+                borderColor = Colors.green;
+                bgColor = Colors.green.withOpacity(0.1);
+              } else if (i == _selected && !_isCorrect) {
+                borderColor = kRedAccent;
+                bgColor = kRedAccent.withOpacity(0.1);
+              }
+            }
+            return GestureDetector(
+              onTap: _selected == null
+                  ? () => setState(() => _selected = i)
+                  : null,
+              child: Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color: bgColor,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: borderColor),
+                ),
+                child: Text(widget.quiz.options[i],
+                    style: const TextStyle(fontSize: 13)),
+              ),
+            );
+          }),
+          if (_selected != null && !_isCorrect) ...[
+            const SizedBox(height: 8),
+            GestureDetector(
+              onTap: () => setState(() => _showHint = !_showHint),
+              child: Text(_showHint ? '힌트 숨기기' : '힌트 보기',
+                  style: const TextStyle(color: kPrimaryColor, fontSize: 12)),
+            ),
+            if (_showHint)
+              Padding(
+                padding: const EdgeInsets.only(top: 6),
+                child: Text(widget.quiz.hint,
+                    style: const TextStyle(color: kTextGray, fontSize: 12)),
+              ),
+          ],
+          if (_selected != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Text(
+                _isCorrect ? '🎉 정답입니다!' : '다시 생각해보세요.',
+                style: TextStyle(
+                    color: _isCorrect ? Colors.green : kRedAccent,
+                    fontWeight: FontWeight.w600),
+              ),
+            ),
+        ],
+      ),
     );
   }
 }
@@ -1692,11 +1882,95 @@ git commit -m "feat: 검색/탐색 화면 — 토픽별 카드 브라우징"
 
 ---
 
-## Task 9: 프로필 화면 & 전체 테스트 (14주차 후반)
+## Task 9: 프로필 화면 & 스트릭 & 전체 테스트 (14주차 후반)
 
 **Files:**
+- Create: `studyreel/lib/domain/streak_provider.dart`
 - Create: `studyreel/lib/presentation/profile/profile_screen.dart`
 - Create: `studyreel/integration_test/feed_flow_test.dart`
+
+- [ ] **Step 0: StreakNotifier 구현**
+
+`lib/domain/streak_provider.dart`:
+
+```dart
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+
+class StreakState {
+  final int todayCount;   // 오늘 본 카드 수
+  final int streakDays;   // 연속 학습 일수
+  final int goalCount;    // 오늘 목표 (기본 20)
+
+  const StreakState({
+    this.todayCount = 0,
+    this.streakDays = 0,
+    this.goalCount = 20,
+  });
+
+  bool get isGoalComplete => todayCount >= goalCount;
+  double get progress => (todayCount / goalCount).clamp(0.0, 1.0);
+}
+
+class StreakNotifier extends AsyncNotifier<StreakState> {
+  @override
+  Future<StreakState> build() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return const StreakState();
+
+    final today = DateTime.now();
+    final dateKey =
+        '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
+
+    final doc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .collection('streaks')
+        .doc(dateKey)
+        .get();
+
+    final todayCount = doc.exists ? (doc['count'] as int? ?? 0) : 0;
+
+    // 연속 일수: 어제 문서가 있으면 streak + 1, 없으면 1
+    final yesterday = today.subtract(const Duration(days: 1));
+    final yKey =
+        '${yesterday.year}-${yesterday.month.toString().padLeft(2, '0')}-${yesterday.day.toString().padLeft(2, '0')}';
+    final yDoc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .collection('streaks')
+        .doc(yKey)
+        .get();
+
+    final streakDays = yDoc.exists ? (yDoc['streak'] as int? ?? 1) + 1 : 1;
+
+    return StreakState(todayCount: todayCount, streakDays: streakDays);
+  }
+
+  Future<void> incrementToday() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+
+    final today = DateTime.now();
+    final dateKey =
+        '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
+
+    await FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .collection('streaks')
+        .doc(dateKey)
+        .set({'count': FieldValue.increment(1), 'streak': state.value?.streakDays ?? 1},
+            SetOptions(merge: true));
+
+    ref.invalidateSelf();
+  }
+}
+
+final streakProvider =
+    AsyncNotifierProvider<StreakNotifier, StreakState>(StreakNotifier.new);
+```
 
 - [ ] **Step 1: 프로필 화면**
 
@@ -1763,25 +2037,52 @@ class ProfileScreen extends ConsumerWidget {
               Text(user?.email ?? '',
                   style: const TextStyle(color: kTextGray, fontSize: 13)),
               const SizedBox(height: 32),
-              // 오늘 학습 통계
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: kCardColor,
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: cardsAsync.when(
-                  data: (cards) => Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+              // 스트릭 + 오늘 목표
+              ref.watch(streakProvider).when(
+                data: (streak) => Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: kCardColor,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Column(
                     children: [
-                      _StatItem(value: '${cards.length}', label: '총 카드'),
-                      _StatItem(value: '${topics.length}', label: '관심사'),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceAround,
+                        children: [
+                          _StatItem(value: '🔥 ${streak.streakDays}일', label: '연속 학습'),
+                          _StatItem(
+                              value: '${streak.todayCount}/${streak.goalCount}',
+                              label: '오늘 목표'),
+                          _StatItem(value: '${topics.length}', label: '관심사'),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      // 진행 바
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(4),
+                        child: LinearProgressIndicator(
+                          value: streak.progress,
+                          minHeight: 6,
+                          backgroundColor: Colors.white12,
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            streak.isGoalComplete ? Colors.green : kPrimaryColor,
+                          ),
+                        ),
+                      ),
+                      if (streak.isGoalComplete)
+                        const Padding(
+                          padding: EdgeInsets.only(top: 8),
+                          child: Text('🎉 오늘 목표 달성!',
+                              style: TextStyle(
+                                  color: Colors.green, fontSize: 12)),
+                        ),
                     ],
                   ),
-                  loading: () => const CircularProgressIndicator(),
-                  error: (_, __) => const Text('불러오기 실패'),
                 ),
+                loading: () => const CircularProgressIndicator(),
+                error: (_, __) => const SizedBox.shrink(),
               ),
               const SizedBox(height: 32),
               // 관심사 수정
