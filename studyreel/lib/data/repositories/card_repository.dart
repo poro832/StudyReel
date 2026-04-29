@@ -13,10 +13,11 @@ class CardRepository {
   })  : _firestore = firestore ?? FirebaseFirestore.instance,
         _auth = auth ?? FirebaseAuth.instance;
 
-  CollectionReference<Map<String, dynamic>> get _cardsRef => _firestore
-      .collection('users')
-      .doc(_auth.currentUser!.uid)
-      .collection('cards');
+  // 로그인 전에도 동작하도록 익명 UID 폴백
+  String get _uid => _auth.currentUser?.uid ?? 'guest';
+
+  CollectionReference<Map<String, dynamic>> get _cardsRef =>
+      _firestore.collection('users').doc(_uid).collection('cards');
 
   Future<void> saveCards(List<StudyCard> cards) async {
     final batch = _firestore.batch();

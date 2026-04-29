@@ -2,14 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/theme.dart';
-import '../../data/models/study_card.dart';
-import '../../domain/card_provider.dart';
 import '../../domain/topic_provider.dart';
-import 'card_widget.dart';
-
-// 피드 내 북마크 토글 상태 (로컬 반영용)
-final _feedCardsProvider =
-    StateProvider.family<List<StudyCard>, List<String>>((ref, topics) => []);
+import '../../domain/youtube_provider.dart';
+import 'shorts_widget.dart';
 
 class FeedScreen extends ConsumerWidget {
   const FeedScreen({super.key});
@@ -17,99 +12,89 @@ class FeedScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final topics = ref.watch(selectedTopicsProvider).toList();
-    final cardsAsync = ref.watch(cardFeedProvider(topics));
+    final videosAsync = ref.watch(youtubeFeedProvider(topics));
 
     return Scaffold(
-      body: SafeArea(
-        child: Column(
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        title: Row(
           children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 8, 24, 0),
-              child: Row(
-                children: [
-                  const Text('오늘의 학습',
-                      style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white)),
-                  const SizedBox(width: 20),
-                  const Text('탐색',
-                      style: TextStyle(fontSize: 16, color: kTextGray)),
-                  const Spacer(),
-                  GestureDetector(
-                    onTap: () => context.push('/profile'),
-                    child: const CircleAvatar(
-                      radius: 18,
-                      backgroundColor: kPrimaryColor,
-                      child: Text('나',
-                          style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600)),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 8),
-            Expanded(
-              child: cardsAsync.when(
-                data: (fetchedCards) {
-                  final localCards =
-                      ref.watch(_feedCardsProvider(topics));
-                  final cards =
-                      localCards.isEmpty ? fetchedCards : localCards;
-
-                  if (localCards.isEmpty && fetchedCards.isNotEmpty) {
-                    WidgetsBinding.instance.addPostFrameCallback((_) {
-                      ref
-                          .read(_feedCardsProvider(topics).notifier)
-                          .state = fetchedCards;
-                    });
-                  }
-
-                  return PageView.builder(
-                    scrollDirection: Axis.vertical,
-                    itemCount: cards.length,
-                    itemBuilder: (context, index) => CardWidget(
-                      card: cards[index],
-                      onTap: () =>
-                          context.push('/detail/${cards[index].id}'),
-                      onBookmark: () {
-                        final updated = cards[index]
-                            .copyWith(isBookmarked: !cards[index].isBookmarked);
-                        final newList = [...cards];
-                        newList[index] = updated;
-                        ref
-                            .read(_feedCardsProvider(topics).notifier)
-                            .state = newList;
-                        ref
-                            .read(cardRepositoryProvider)
-                            .toggleBookmark(cards[index].id, updated.isBookmarked);
-                      },
-                    ),
-                  );
-                },
-                loading: () => const Center(
-                    child: CircularProgressIndicator()),
-                error: (e, _) => Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Text('카드를 불러오지 못했습니다.',
-                          style: TextStyle(color: kTextGray)),
-                      const SizedBox(height: 12),
-                      ElevatedButton(
-                        onPressed: () =>
-                            ref.invalidate(cardFeedProvider),
-                        child: const Text('다시 시도'),
-                      ),
-                    ],
-                  ),
-                ),
+            const Text('오늘의 학습',
+                style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white)),
+            const SizedBox(width: 20),
+            const Text('탐색',
+                style: TextStyle(fontSize: 16, color: kTextGray)),
+            const Spacer(),
+            GestureDetector(
+              onTap: () => context.push('/profile'),
+              child: const CircleAvatar(
+                radius: 18,
+                backgroundColor: kPrimaryColor,
+                child: Text('나',
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600)),
               ),
             ),
           ],
+        ),
+      ),
+      body: videosAsync.when(
+        data: (fetchedVideos) {
+          final videos = ref.watch(youtubeVideosProvider);
+          final list = videos.isEmpty ? fetchedVideos : videos;
+
+          if (videos.isEmpty && fetchedVideos.isNotEmpty) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              ref.read(youtubeVideosProvider.notifier).state = fetchedVideos;
+            });
+          }
+
+          if (list.isEmpty) {
+            return const Center(
+              child: Text('검색된 영상이 없습니다.',
+                  style: TextStyle(color: kTextGray)),
+            );
+          }
+
+          return PageView.builder(
+            scrollDirection: Axis.vertical,
+            itemCount: list.length,
+            itemBuilder: (context, index) => ShortsWidget(
+              video: list[index],
+              onBookmark: () {
+                final updated = list[index]
+                    .copyWith(isBookmarked: !list[index].isBookmarked);
+                final newList = [...list];
+                newList[index] = updated;
+                ref.read(youtubeVideosProvider.notifier).state = newList;
+                ref
+                    .read(youtubeRepositoryProvider)
+                    .toggleBookmark(updated.videoId, updated.isBookmarked);
+              },
+            ),
+          );
+        },
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (e, _) => Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('영상을 불러오지 못했습니다.',
+                  style: TextStyle(color: kTextGray)),
+              const SizedBox(height: 12),
+              ElevatedButton(
+                onPressed: () => ref.invalidate(youtubeFeedProvider),
+                child: const Text('다시 시도'),
+              ),
+            ],
+          ),
         ),
       ),
     );
