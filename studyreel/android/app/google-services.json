@@ -1,26 +1,36 @@
 {
   "project_info": {
-    "project_number": "000000000000",
-    "project_id": "studyreel-placeholder",
-    "storage_bucket": "studyreel-placeholder.appspot.com"
+    "project_number": "907984054023",
+    "project_id": "studyreel-53c70",
+    "storage_bucket": "studyreel-53c70.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:000000000000:android:0000000000000000",
+        "mobilesdk_app_id": "1:907984054023:android:f963ce9af36cc56f6c07a2",
         "android_client_info": {
           "package_name": "com.studyreel.studyreel"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "907984054023-mu1j7b8vqcomtg1jhkng73d921eoj8u8.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
-          "current_key": "placeholder_api_key"
+          "current_key": "AIzaSyBX_0277ruGCiB9EB3bW4bXEaFv7ou1YOM"
         }
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "907984054023-mu1j7b8vqcomtg1jhkng73d921eoj8u8.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }
