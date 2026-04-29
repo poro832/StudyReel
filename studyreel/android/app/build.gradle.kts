@@ -5,6 +5,9 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+// 한글 경로에서 impellerc.exe 크래시 방지: 빌드 출력 경로를 ASCII 경로로 변경
+layout.buildDirectory.set(file("C:/temp/studyreel_build/app"))
+
 android {
     namespace = "com.studyreel.studyreel"
     compileSdk = flutter.compileSdkVersion
