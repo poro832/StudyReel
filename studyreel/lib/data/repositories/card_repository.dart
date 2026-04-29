@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_functions/cloud_functions.dart';
 import '../models/study_card.dart';
+import '../services/claude_service.dart';
 
 class CardRepository {
   final FirebaseFirestore _firestore;
@@ -36,12 +36,7 @@ class CardRepository {
   }
 
   Future<List<StudyCard>> fetchAndSaveCards(List<String> topics) async {
-    final callable =
-        FirebaseFunctions.instance.httpsCallable('generateStudyCards');
-    final result = await callable.call({'topics': topics, 'count': 5});
-    final raw =
-        List<Map<String, dynamic>>.from(result.data['cards'] as List);
-    final cards = raw.map(StudyCard.fromJson).toList();
+    final cards = await ClaudeService().generateCards(topics, 5);
     await saveCards(cards);
     return cards;
   }
