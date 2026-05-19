@@ -35,7 +35,6 @@ dependencies:
   firebase_core: ^3.6.0
   firebase_auth: ^5.3.0
   cloud_firestore: ^5.4.0
-  cloud_functions: ^5.1.0
   google_sign_in: ^6.2.0
   # 상태 관리 & 라우팅
   flutter_riverpod: ^2.5.1
