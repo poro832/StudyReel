@@ -18,3 +18,13 @@ final youtubeFeedProvider =
     return videos;
   },
 );
+
+/// 탐색 화면 키워드 검색 결과 (빈 쿼리는 빈 목록)
+final searchResultsProvider =
+    FutureProvider.family<List<YoutubeVideo>, String>(
+  (ref, query) async {
+    final q = query.trim();
+    if (q.isEmpty) return [];
+    return ref.read(youtubeRepositoryProvider).search(q);
+  },
+);

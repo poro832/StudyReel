@@ -27,8 +27,11 @@ class FeedScreen extends ConsumerWidget {
                     fontWeight: FontWeight.w600,
                     color: Colors.white)),
             const SizedBox(width: 20),
-            const Text('탐색',
-                style: TextStyle(fontSize: 16, color: kTextGray)),
+            GestureDetector(
+              onTap: () => context.push('/explore'),
+              child: const Text('탐색',
+                  style: TextStyle(fontSize: 16, color: Colors.white)),
+            ),
             const Spacer(),
             GestureDetector(
               onTap: () => context.push('/profile'),

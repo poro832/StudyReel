@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../../core/theme.dart';
+import '../../core/youtube_launcher.dart';
 import '../../data/models/youtube_video.dart';
 
 class ShortsWidget extends StatelessWidget {
@@ -13,21 +13,10 @@ class ShortsWidget extends StatelessWidget {
     required this.onBookmark,
   });
 
-  Future<void> _openYoutube() async {
-    final appUrl = Uri.parse('vnd.youtube://${video.videoId}');
-    final webUrl =
-        Uri.parse('https://www.youtube.com/shorts/${video.videoId}');
-    if (await canLaunchUrl(appUrl)) {
-      await launchUrl(appUrl);
-    } else {
-      await launchUrl(webUrl, mode: LaunchMode.externalApplication);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: _openYoutube,
+      onTap: () => launchYoutube(video.videoId),
       child: Stack(
         fit: StackFit.expand,
         children: [
