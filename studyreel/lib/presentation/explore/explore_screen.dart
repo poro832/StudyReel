@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme.dart';
-import '../../core/youtube_launcher.dart';
-import '../../data/models/youtube_video.dart';
 import '../../domain/youtube_provider.dart';
+import '../common/video_list_tile.dart';
 
 class ExploreScreen extends ConsumerStatefulWidget {
   const ExploreScreen({super.key});
@@ -85,7 +84,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                         separatorBuilder: (_, __) =>
                             const SizedBox(height: 12),
                         itemBuilder: (context, i) =>
-                            _ResultTile(video: videos[i]),
+                            VideoListTile(video: videos[i]),
                       );
                     },
                     loading: () => const Center(
@@ -118,84 +117,6 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                   ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _ResultTile extends StatelessWidget {
-  final YoutubeVideo video;
-  const _ResultTile({required this.video});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () => launchYoutube(video.videoId),
-      child: Container(
-        decoration: BoxDecoration(
-          color: kCardColor,
-          borderRadius: BorderRadius.circular(16),
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: Row(
-          children: [
-            Stack(
-              alignment: Alignment.center,
-              children: [
-                Image.network(
-                  video.thumbnailUrl,
-                  width: 140,
-                  height: 90,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => Container(
-                    width: 140,
-                    height: 90,
-                    color: kBgColor,
-                  ),
-                ),
-                Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    color: Colors.black54,
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(Icons.play_arrow_rounded,
-                      color: Colors.white, size: 24),
-                ),
-              ],
-            ),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      video.title,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          height: 1.3),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      video.channelTitle,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                          color: kTextGray, fontSize: 11),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }

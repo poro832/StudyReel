@@ -28,3 +28,9 @@ final searchResultsProvider =
     return ref.read(youtubeRepositoryProvider).search(q);
   },
 );
+
+/// 프로필 화면 — 북마크된 영상 목록
+final bookmarkedVideosProvider =
+    FutureProvider<List<YoutubeVideo>>((ref) async {
+  return ref.read(youtubeRepositoryProvider).loadBookmarked();
+});

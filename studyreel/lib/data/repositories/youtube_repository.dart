@@ -64,4 +64,10 @@ class YoutubeRepository {
   /// 키워드 검색은 캐싱하지 않고 매번 새로 조회 (임의 쿼리로 Firestore 오염 방지)
   Future<List<YoutubeVideo>> search(String query) =>
       _service.searchByKeyword(query);
+
+  /// 북마크된 영상만 반환 (프로필 화면용)
+  Future<List<YoutubeVideo>> loadBookmarked() async {
+    final all = await loadCached();
+    return all.where((v) => v.isBookmarked).toList();
+  }
 }
