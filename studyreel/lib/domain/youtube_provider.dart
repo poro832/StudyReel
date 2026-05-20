@@ -7,15 +7,16 @@ final youtubeRepositoryProvider =
 
 final youtubeVideosProvider = StateProvider<List<YoutubeVideo>>((_) => []);
 
+/// 토픽들을 정렬·조인해 만든 안정적인 문자열 키를 받는다.
+/// `List<String>`을 family 키로 쓰면 매 빌드마다 새 List 인스턴스가 만들어져
+/// FutureProvider가 무한 재실행되는 문제를 회피하기 위함.
 final youtubeFeedProvider =
-    FutureProvider.family<List<YoutubeVideo>, List<String>>(
-  (ref, topics) async {
+    FutureProvider.family<List<YoutubeVideo>, String>(
+  (ref, topicsKey) async {
+    final topics = topicsKey.split('|');
     final repo = ref.read(youtubeRepositoryProvider);
     final cached = await repo.loadCached();
-    final videos =
-        cached.isNotEmpty ? cached : await repo.fetchAndCache(topics);
-    ref.read(youtubeVideosProvider.notifier).state = videos;
-    return videos;
+    return cached.isNotEmpty ? cached : await repo.fetchAndCache(topics);
   },
 );
 

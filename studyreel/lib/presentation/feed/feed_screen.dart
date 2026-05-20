@@ -11,8 +11,8 @@ class FeedScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final topics = ref.watch(selectedTopicsProvider).toList();
-    final videosAsync = ref.watch(youtubeFeedProvider(topics));
+    final topics = ref.watch(selectedTopicsProvider).toList()..sort();
+    final videosAsync = ref.watch(youtubeFeedProvider(topics.join('|')));
 
     return Scaffold(
       extendBodyBehindAppBar: true,
