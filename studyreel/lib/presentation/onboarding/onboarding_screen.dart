@@ -28,7 +28,10 @@ class OnboardingScreen extends ConsumerWidget {
               const SizedBox(height: 32),
               const Text('어떤 걸\n배우고 싶나요?',
                   style: TextStyle(
-                      fontSize: 32, fontWeight: FontWeight.bold, height: 1.3)),
+                      fontSize: 32,
+                      fontWeight: FontWeight.bold,
+                      height: 1.3,
+                      color: kTextColor)),
               const SizedBox(height: 12),
               const Text('3개 이상 선택해 주세요.',
                   style: TextStyle(color: kTextGray)),
@@ -44,21 +47,20 @@ class OnboardingScreen extends ConsumerWidget {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 20, vertical: 12),
                       decoration: BoxDecoration(
-                        color: isSelected
-                            ? kPrimaryColor.withValues(alpha: 0.25)
-                            : kCardColor,
+                        color: isSelected ? kPrimaryColor : kSurfaceColor,
                         borderRadius: BorderRadius.circular(22),
                         border: Border.all(
-                          color: isSelected ? kPrimaryColor : Colors.white24,
-                          width: isSelected ? 1.5 : 1,
+                          color: isSelected ? kPrimaryColor : kBorderColor,
+                          width: 1,
                         ),
+                        boxShadow: isSelected ? null : kCardShadow,
                       ),
                       child: Text(topic,
                           style: TextStyle(
-                              color: isSelected ? kPrimaryColor : kTextGray,
+                              color: isSelected ? Colors.white : kTextColor,
                               fontWeight: isSelected
-                                  ? FontWeight.w600
-                                  : FontWeight.normal)),
+                                  ? FontWeight.w700
+                                  : FontWeight.w500)),
                     ),
                   );
                 }).toList(),
@@ -76,8 +78,7 @@ class OnboardingScreen extends ConsumerWidget {
                       notifier.isValid ? () => context.go('/feed') : null,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: kPrimaryColor,
-                    disabledBackgroundColor:
-                        kPrimaryColor.withValues(alpha: 0.3),
+                    disabledBackgroundColor: kBorderColor,
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16)),
                   ),

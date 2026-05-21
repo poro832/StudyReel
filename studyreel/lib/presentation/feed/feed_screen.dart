@@ -22,22 +22,21 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
     final videosAsync = ref.watch(youtubeFeedProvider(topics.join('|')));
 
     return Scaffold(
-      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: kBgColor,
         elevation: 0,
         title: Row(
           children: [
             const Text('오늘의 학습',
                 style: TextStyle(
                     fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white)),
+                    fontWeight: FontWeight.w700,
+                    color: kTextColor)),
             const SizedBox(width: 20),
             GestureDetector(
               onTap: () => context.push('/explore'),
               child: const Text('탐색',
-                  style: TextStyle(fontSize: 16, color: Colors.white)),
+                  style: TextStyle(fontSize: 16, color: kTextGray)),
             ),
             const Spacer(),
             GestureDetector(

@@ -15,8 +15,9 @@ class VideoListTile extends StatelessWidget {
       onTap: () => launchYoutube(video.videoId),
       child: Container(
         decoration: BoxDecoration(
-          color: kCardColor,
+          color: kSurfaceColor,
           borderRadius: BorderRadius.circular(16),
+          boxShadow: kCardShadow,
         ),
         clipBehavior: Clip.antiAlias,
         child: Row(
@@ -39,7 +40,7 @@ class VideoListTile extends StatelessWidget {
                   width: 36,
                   height: 36,
                   decoration: const BoxDecoration(
-                    color: Colors.black54,
+                    color: Colors.black38,
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(Icons.play_arrow_rounded,
@@ -59,9 +60,9 @@ class VideoListTile extends StatelessWidget {
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
-                          color: Colors.white,
+                          color: kTextColor,
                           fontSize: 13,
-                          fontWeight: FontWeight.w600,
+                          fontWeight: FontWeight.w700,
                           height: 1.3),
                     ),
                     const SizedBox(height: 6),
@@ -69,8 +70,7 @@ class VideoListTile extends StatelessWidget {
                       video.channelTitle,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                          color: kTextGray, fontSize: 11),
+                      style: const TextStyle(color: kTextGray, fontSize: 11),
                     ),
                   ],
                 ),

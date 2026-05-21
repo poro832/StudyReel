@@ -36,7 +36,10 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
         backgroundColor: kBgColor,
         elevation: 0,
         title: const Text('탐색',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+            style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: kTextColor)),
       ),
       body: Column(
         children: [
@@ -46,19 +49,19 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
               controller: _controller,
               textInputAction: TextInputAction.search,
               onSubmitted: (_) => _submit(),
-              style: const TextStyle(color: Colors.white),
+              style: const TextStyle(color: kTextColor),
               decoration: InputDecoration(
                 hintText: '학습 주제나 키워드를 검색하세요',
                 hintStyle: const TextStyle(color: kTextGray),
                 filled: true,
-                fillColor: kCardColor,
-                prefixIcon: const Icon(Icons.search, color: kTextGray),
+                fillColor: kSurfaceColor,
+                prefixIcon: const Icon(Icons.search, color: kPrimaryColor),
                 suffixIcon: IconButton(
                   icon: const Icon(Icons.arrow_forward, color: kPrimaryColor),
                   onPressed: _submit,
                 ),
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(14),
                   borderSide: BorderSide.none,
                 ),
               ),

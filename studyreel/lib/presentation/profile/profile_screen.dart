@@ -18,7 +18,10 @@ class ProfileScreen extends ConsumerWidget {
         backgroundColor: kBgColor,
         elevation: 0,
         title: const Text('프로필',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+            style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: kTextColor)),
       ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
@@ -27,9 +30,9 @@ class ProfileScreen extends ConsumerWidget {
           const SizedBox(height: 24),
           const Text('저장한 영상',
               style: TextStyle(
-                  color: Colors.white,
+                  color: kTextColor,
                   fontSize: 16,
-                  fontWeight: FontWeight.w600)),
+                  fontWeight: FontWeight.w700)),
           const SizedBox(height: 12),
           bookmarksAsync.when(
             data: (videos) {
@@ -84,11 +87,12 @@ class _StreakCard extends StatelessWidget {
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [kPrimaryColor, Color(0xFF4A42C7)],
+          colors: [kPrimaryColor, Color(0xFF1B64DA)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(20),
+        boxShadow: kCardShadow,
       ),
       child: Row(
         children: [
