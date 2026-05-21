@@ -6,22 +6,26 @@ const _ytApiKey = String.fromEnvironment('YOUTUBE_API_KEY');
 const _searchEndpoint = 'https://www.googleapis.com/youtube/v3/search';
 const _videosEndpoint = 'https://www.googleapis.com/youtube/v3/videos';
 
+/// 피드에 노출할 최대 영상 길이(초). 쇼츠 형태 유지를 위해 60초 이하만.
+const _maxShortsSeconds = 60;
+
 class YoutubeService {
-  /// 토픽별 학습 영상 검색 (피드용). 인앱 임베드 가능한 영상만 반환.
+  /// 토픽별 학습 쇼츠 검색 (피드용).
+  /// 인앱 임베드 가능 + 60초 이하 영상만 반환한다.
   Future<List<YoutubeVideo>> searchShorts(List<String> topics) async {
     final videos = <YoutubeVideo>[];
     for (final topic in topics) {
       final items = await _search(
-        query: '$topic 학습',
-        maxResults: 8,
-        videoDuration: 'short',
+        query: '$topic 쇼츠',
+        maxResults: 15,
+        videoDuration: 'short', // 4분 미만 (정밀 길이 필터는 아래에서)
       );
       videos.addAll(_parseItems(items, topic));
     }
-    return _filterEmbeddable(videos);
+    return _filterPlayableShorts(videos);
   }
 
-  /// 키워드 자유 검색 (탐색 화면용). 탐색은 외부 실행이라 임베드 필터 미적용.
+  /// 키워드 자유 검색 (탐색 화면용). 탐색은 외부 실행이라 필터 미적용.
   Future<List<YoutubeVideo>> searchByKeyword(String query) async {
     final items = await _search(query: query, maxResults: 15);
     return _parseItems(items, query);
@@ -52,38 +56,57 @@ class YoutubeService {
     return body['items'] as List;
   }
 
-  /// videos.list(part=status)로 임베드 가능 영상만 추려 반환 (1 unit/회).
-  /// 소유자가 외부 임베드를 막은 영상(Error 152)을 피드에서 제외한다.
-  Future<List<YoutubeVideo>> _filterEmbeddable(
+  /// videos.list(part=status,contentDetails)로 한 번에 검증 (1 unit/회):
+  /// - status.embeddable == true (인앱 임베드 가능, Error 152 회피)
+  /// - contentDetails.duration <= 60초 (쇼츠 형태 유지)
+  /// id는 최대 50개씩 끊어 호출한다.
+  Future<List<YoutubeVideo>> _filterPlayableShorts(
       List<YoutubeVideo> videos) async {
     if (videos.isEmpty) return [];
-    final ids = videos.map((v) => v.videoId).join(',');
-    final uri = Uri.parse(_videosEndpoint).replace(queryParameters: {
-      'part': 'status',
-      'id': ids,
-      'key': _ytApiKey,
-    });
 
-    final response = await http.get(uri);
-    if (response.statusCode != 200) {
-      throw Exception(
-          'YouTube videos API 오류: ${response.statusCode}\n${response.body}');
-    }
-    final body = jsonDecode(utf8.decode(response.bodyBytes));
-    final items = body['items'] as List;
+    // 통과한 영상의 id → 길이(초) 매핑
+    final passed = <String, int>{};
+    for (var i = 0; i < videos.length; i += 50) {
+      final chunk = videos.sublist(i, (i + 50).clamp(0, videos.length));
+      final ids = chunk.map((v) => v.videoId).join(',');
+      final uri = Uri.parse(_videosEndpoint).replace(queryParameters: {
+        'part': 'status,contentDetails',
+        'id': ids,
+        'key': _ytApiKey,
+      });
 
-    final embeddableIds = <String>{};
-    for (final item in items) {
-      final status = item['status'] as Map<String, dynamic>;
-      if (status['embeddable'] == true) {
-        embeddableIds.add(item['id'] as String);
+      final response = await http.get(uri);
+      if (response.statusCode != 200) {
+        throw Exception(
+            'YouTube videos API 오류: ${response.statusCode}\n${response.body}');
+      }
+      final body = jsonDecode(utf8.decode(response.bodyBytes));
+      for (final item in body['items'] as List) {
+        final embeddable = item['status']?['embeddable'] == true;
+        final seconds =
+            _parseIsoDuration(item['contentDetails']?['duration'] as String?);
+        if (embeddable && seconds > 0 && seconds <= _maxShortsSeconds) {
+          passed[item['id'] as String] = seconds;
+        }
       }
     }
 
     return videos
-        .where((v) => embeddableIds.contains(v.videoId))
-        .map((v) => v.copyWith(embeddable: true))
+        .where((v) => passed.containsKey(v.videoId))
+        .map((v) =>
+            v.copyWith(embeddable: true, durationSeconds: passed[v.videoId]))
         .toList();
+  }
+
+  /// ISO 8601 기간(PT#H#M#S)을 초로 변환. 파싱 실패 시 0.
+  int _parseIsoDuration(String? iso) {
+    if (iso == null) return 0;
+    final m = RegExp(r'PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?').firstMatch(iso);
+    if (m == null) return 0;
+    final h = int.tryParse(m.group(1) ?? '') ?? 0;
+    final min = int.tryParse(m.group(2) ?? '') ?? 0;
+    final s = int.tryParse(m.group(3) ?? '') ?? 0;
+    return h * 3600 + min * 60 + s;
   }
 
   List<YoutubeVideo> _parseItems(List<dynamic> items, String topic) {

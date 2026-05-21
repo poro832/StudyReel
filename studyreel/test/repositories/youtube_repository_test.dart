@@ -23,6 +23,7 @@ void main() {
       topic: '수학',
       thumbnailUrl: 'http://x/a1.jpg',
       embeddable: true,
+      durationSeconds: 45,
     );
     const v2 = YoutubeVideo(
       videoId: 'b2',
@@ -31,6 +32,7 @@ void main() {
       topic: '과학',
       thumbnailUrl: 'http://x/b2.jpg',
       embeddable: true,
+      durationSeconds: 58,
     );
 
     test('saveAll → loadCached 라운드트립', () async {
@@ -47,8 +49,24 @@ void main() {
         topic: '수학',
         thumbnailUrl: 'http://x/c3.jpg',
         embeddable: false,
+        durationSeconds: 30,
       );
       await repo.saveAll([v1, blocked]);
+      final loaded = await repo.loadCached();
+      expect(loaded.map((e) => e.videoId), ['a1']);
+    });
+
+    test('loadCached — 60초 초과 영상은 제외 (쇼츠만)', () async {
+      const longVideo = YoutubeVideo(
+        videoId: 'd4',
+        title: '20분 강의',
+        channelTitle: '채널',
+        topic: '수학',
+        thumbnailUrl: 'http://x/d4.jpg',
+        embeddable: true,
+        durationSeconds: 1200,
+      );
+      await repo.saveAll([v1, longVideo]);
       final loaded = await repo.loadCached();
       expect(loaded.map((e) => e.videoId), ['a1']);
     });
