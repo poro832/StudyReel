@@ -22,6 +22,7 @@ void main() {
       channelTitle: '수학채널',
       topic: '수학',
       thumbnailUrl: 'http://x/a1.jpg',
+      embeddable: true,
     );
     const v2 = YoutubeVideo(
       videoId: 'b2',
@@ -29,12 +30,27 @@ void main() {
       channelTitle: '과학채널',
       topic: '과학',
       thumbnailUrl: 'http://x/b2.jpg',
+      embeddable: true,
     );
 
     test('saveAll → loadCached 라운드트립', () async {
       await repo.saveAll([v1, v2]);
       final loaded = await repo.loadCached();
       expect(loaded.map((e) => e.videoId), containsAll(['a1', 'b2']));
+    });
+
+    test('loadCached — embeddable=false 영상은 제외', () async {
+      const blocked = YoutubeVideo(
+        videoId: 'c3',
+        title: '임베드 차단 영상',
+        channelTitle: '채널',
+        topic: '수학',
+        thumbnailUrl: 'http://x/c3.jpg',
+        embeddable: false,
+      );
+      await repo.saveAll([v1, blocked]);
+      final loaded = await repo.loadCached();
+      expect(loaded.map((e) => e.videoId), ['a1']);
     });
 
     test('loadBookmarked — 북마크된 영상만 반환', () async {

@@ -42,6 +42,7 @@ dependencies:
   # 유틸리티
   url_launcher: ^6.3.0
   http: ^1.2.0
+  youtube_player_iframe: ^5.2.1
 
 dev_dependencies:
   flutter_test:

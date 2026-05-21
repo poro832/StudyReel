@@ -6,11 +6,18 @@ import '../../domain/topic_provider.dart';
 import '../../domain/youtube_provider.dart';
 import 'shorts_widget.dart';
 
-class FeedScreen extends ConsumerWidget {
+class FeedScreen extends ConsumerStatefulWidget {
   const FeedScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<FeedScreen> createState() => _FeedScreenState();
+}
+
+class _FeedScreenState extends ConsumerState<FeedScreen> {
+  int _currentIndex = 0;
+
+  @override
+  Widget build(BuildContext context) {
     final topics = ref.watch(selectedTopicsProvider).toList()..sort();
     final videosAsync = ref.watch(youtubeFeedProvider(topics.join('|')));
 
@@ -69,8 +76,10 @@ class FeedScreen extends ConsumerWidget {
           return PageView.builder(
             scrollDirection: Axis.vertical,
             itemCount: list.length,
+            onPageChanged: (i) => setState(() => _currentIndex = i),
             itemBuilder: (context, index) => ShortsWidget(
               video: list[index],
+              isActive: index == _currentIndex,
               onBookmark: () {
                 final updated = list[index]
                     .copyWith(isBookmarked: !list[index].isBookmarked);

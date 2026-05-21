@@ -23,17 +23,23 @@ class YoutubeRepository {
 
   Future<List<YoutubeVideo>> loadCached() async {
     final snap = await _videosRef.get();
-    return snap.docs.map((d) {
-      final data = d.data();
-      return YoutubeVideo(
-        videoId: data['videoId'] as String,
-        title: data['title'] as String,
-        channelTitle: data['channelTitle'] as String,
-        topic: data['topic'] as String,
-        thumbnailUrl: data['thumbnailUrl'] as String,
-        isBookmarked: data['isBookmarked'] as bool? ?? false,
-      );
-    }).toList();
+    return snap.docs
+        .map((d) {
+          final data = d.data();
+          return YoutubeVideo(
+            videoId: data['videoId'] as String,
+            title: data['title'] as String,
+            channelTitle: data['channelTitle'] as String,
+            topic: data['topic'] as String,
+            thumbnailUrl: data['thumbnailUrl'] as String,
+            isBookmarked: data['isBookmarked'] as bool? ?? false,
+            embeddable: data['embeddable'] as bool? ?? false,
+          );
+        })
+        // 임베드 가능한 영상만 노출. embeddable 필드 없는 구버전 캐시는
+        // 자동 제외되어 fetchAndCache로 재조회를 유도한다.
+        .where((v) => v.embeddable)
+        .toList();
   }
 
   Future<void> saveAll(List<YoutubeVideo> videos) async {
@@ -46,6 +52,7 @@ class YoutubeRepository {
         'topic': v.topic,
         'thumbnailUrl': v.thumbnailUrl,
         'isBookmarked': v.isBookmarked,
+        'embeddable': v.embeddable,
       });
     }
     await batch.commit();

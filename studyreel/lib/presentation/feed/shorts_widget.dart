@@ -1,54 +1,79 @@
 import 'package:flutter/material.dart';
+import 'package:youtube_player_iframe/youtube_player_iframe.dart';
 import '../../core/theme.dart';
 import '../../core/youtube_launcher.dart';
 import '../../data/models/youtube_video.dart';
 
-class ShortsWidget extends StatelessWidget {
+class ShortsWidget extends StatefulWidget {
   final YoutubeVideo video;
+  final bool isActive;
   final VoidCallback onBookmark;
 
   const ShortsWidget({
     super.key,
     required this.video,
+    required this.isActive,
     required this.onBookmark,
   });
 
   @override
+  State<ShortsWidget> createState() => _ShortsWidgetState();
+}
+
+class _ShortsWidgetState extends State<ShortsWidget> {
+  late final YoutubePlayerController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = YoutubePlayerController.fromVideoId(
+      videoId: widget.video.videoId,
+      autoPlay: widget.isActive,
+      params: const YoutubePlayerParams(
+        showControls: true,
+        showFullscreenButton: false,
+        strictRelatedVideos: true,
+        mute: false,
+        loop: true,
+      ),
+    );
+  }
+
+  @override
+  void didUpdateWidget(covariant ShortsWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isActive != oldWidget.isActive) {
+      if (widget.isActive) {
+        _controller.playVideo();
+      } else {
+        _controller.pauseVideo();
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.close();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () => launchYoutube(video.videoId),
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          // 썸네일 배경
-          Image.network(
-            video.thumbnailUrl,
-            fit: BoxFit.cover,
-            errorBuilder: (_, __, ___) => Container(color: kCardColor),
-          ),
-          // 어두운 오버레이
-          Container(color: Colors.black45),
-          // 중앙 재생 버튼
-          Center(
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        // 인앱 YouTube 플레이어
+        YoutubePlayer(controller: _controller),
+
+        // 하단 정보 오버레이 (탭 영역 침범 안 하도록 IgnorePointer 영역 분리)
+        Positioned(
+          left: 0,
+          right: 0,
+          bottom: 0,
+          child: IgnorePointer(
+            ignoring: false,
             child: Container(
-              width: 72,
-              height: 72,
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.15),
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.white54, width: 2),
-              ),
-              child: const Icon(Icons.play_arrow_rounded,
-                  color: Colors.white, size: 44),
-            ),
-          ),
-          // 하단 정보 오버레이
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: Container(
-              padding: const EdgeInsets.fromLTRB(16, 60, 16, 32),
+              padding: const EdgeInsets.fromLTRB(16, 80, 16, 32),
               decoration: const BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.bottomCenter,
@@ -71,7 +96,7 @@ class ShortsWidget extends StatelessWidget {
                             color: kPrimaryColor.withValues(alpha: 0.85),
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          child: Text(video.topic,
+                          child: Text(widget.video.topic,
                               style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 11,
@@ -79,7 +104,7 @@ class ShortsWidget extends StatelessWidget {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          video.title,
+                          widget.video.title,
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
@@ -89,53 +114,63 @@ class ShortsWidget extends StatelessWidget {
                               height: 1.3),
                         ),
                         const SizedBox(height: 4),
-                        Text(video.channelTitle,
+                        Text(widget.video.channelTitle,
                             style: const TextStyle(
                                 color: Colors.white70, fontSize: 12)),
-                        const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            const Icon(Icons.play_circle_outline,
-                                color: kRedAccent, size: 14),
-                            const SizedBox(width: 4),
-                            const Text('탭하여 YouTube에서 보기',
-                                style: TextStyle(
-                                    color: kRedAccent, fontSize: 11)),
-                          ],
-                        ),
                       ],
                     ),
                   ),
                   const SizedBox(width: 12),
-                  GestureDetector(
-                    onTap: onBookmark,
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          video.isBookmarked
-                              ? Icons.bookmark
-                              : Icons.bookmark_border,
-                          color: video.isBookmarked
-                              ? kPrimaryColor
-                              : Colors.white,
-                          size: 32,
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      GestureDetector(
+                        onTap: widget.onBookmark,
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              widget.video.isBookmarked
+                                  ? Icons.bookmark
+                                  : Icons.bookmark_border,
+                              color: widget.video.isBookmarked
+                                  ? kPrimaryColor
+                                  : Colors.white,
+                              size: 32,
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              widget.video.isBookmarked ? '저장됨' : '저장',
+                              style: const TextStyle(
+                                  color: Colors.white, fontSize: 11),
+                            ),
+                          ],
                         ),
-                        const SizedBox(height: 2),
-                        Text(
-                          video.isBookmarked ? '저장됨' : '저장',
-                          style: const TextStyle(
-                              color: Colors.white, fontSize: 11),
+                      ),
+                      const SizedBox(height: 12),
+                      // YouTube 앱에서 열기 (선택)
+                      GestureDetector(
+                        onTap: () => launchYoutube(widget.video.videoId),
+                        child: const Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.open_in_new,
+                                color: Colors.white, size: 26),
+                            SizedBox(height: 2),
+                            Text('앱에서',
+                                style: TextStyle(
+                                    color: Colors.white, fontSize: 11)),
+                          ],
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ],
               ),
             ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
