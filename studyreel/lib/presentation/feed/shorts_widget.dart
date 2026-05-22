@@ -38,12 +38,20 @@ class _ShortsWidgetState extends State<ShortsWidget> {
         showControls: true,
         showFullscreenButton: false,
         strictRelatedVideos: true,
-        mute: false,
+        // 무음 자동재생만 브라우저 정책상 허용됨. 소리 있는 자동재생은
+        // onAutoplayBlocked로 막혀 검은 화면이 됨 → 음소거로 시작 후 탭하면 해제.
+        mute: true,
         loop: true,
       ),
     );
     _sub = _controller.listen((value) {
-      if (value.error != YoutubeError.none && mounted && !_embedFailed) {
+      // 진짜 임베드 차단(101/150)일 때만 로컬 폴백으로 전환한다.
+      // unknown 등 일시 오류로는 전환하지 않는다(전체 피드 캐스케이드 방지).
+      const embedBlocked = {
+        YoutubeError.notEmbeddable,
+        YoutubeError.sameAsNotEmbeddable,
+      };
+      if (embedBlocked.contains(value.error) && mounted && !_embedFailed) {
         setState(() => _embedFailed = true);
       }
     });

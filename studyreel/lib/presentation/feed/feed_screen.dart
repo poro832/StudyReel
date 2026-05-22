@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/theme.dart';
+import '../../data/models/youtube_video.dart';
 import '../../domain/topic_provider.dart';
 import '../../domain/youtube_provider.dart';
 import 'shorts_widget.dart';
@@ -15,6 +16,7 @@ class FeedScreen extends ConsumerStatefulWidget {
 
 class _FeedScreenState extends ConsumerState<FeedScreen> {
   int _currentIndex = 0;
+  bool _initialized = false;
 
   @override
   Widget build(BuildContext context) {
@@ -56,41 +58,26 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
       ),
       body: videosAsync.when(
         data: (fetchedVideos) {
-          final videos = ref.watch(youtubeVideosProvider);
-          final list = videos.isEmpty ? fetchedVideos : videos;
+          // provider를 항상 watch해야 제거 업데이트가 리빌드를 트리거한다.
+          final stateVideos = ref.watch(youtubeVideosProvider);
 
-          if (videos.isEmpty && fetchedVideos.isNotEmpty) {
+          // 최초 1회만 provider를 캐시/패치 결과로 초기화. 이후엔 provider
+          // 상태가 단일 소스 — 재생 실패 영상 제거가 그대로 반영된다.
+          if (!_initialized) {
+            _initialized = true;
             WidgetsBinding.instance.addPostFrameCallback((_) {
               ref.read(youtubeVideosProvider.notifier).state = fetchedVideos;
             });
+            return _buildPager(fetchedVideos);
           }
 
-          if (list.isEmpty) {
+          if (stateVideos.isEmpty) {
             return const Center(
-              child: Text('검색된 영상이 없습니다.',
+              child: Text('재생 가능한 영상이 없습니다.',
                   style: TextStyle(color: kTextGray)),
             );
           }
-
-          return PageView.builder(
-            scrollDirection: Axis.vertical,
-            itemCount: list.length,
-            onPageChanged: (i) => setState(() => _currentIndex = i),
-            itemBuilder: (context, index) => ShortsWidget(
-              video: list[index],
-              isActive: index == _currentIndex,
-              onBookmark: () {
-                final updated = list[index]
-                    .copyWith(isBookmarked: !list[index].isBookmarked);
-                final newList = [...list];
-                newList[index] = updated;
-                ref.read(youtubeVideosProvider.notifier).state = newList;
-                ref
-                    .read(youtubeRepositoryProvider)
-                    .toggleBookmark(updated.videoId, updated.isBookmarked);
-              },
-            ),
-          );
+          return _buildPager(stateVideos);
         },
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(
@@ -108,6 +95,33 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildPager(List<YoutubeVideo> list) {
+    return PageView.builder(
+      scrollDirection: Axis.vertical,
+      itemCount: list.length,
+      onPageChanged: (i) => setState(() => _currentIndex = i),
+      itemBuilder: (context, index) {
+        final video = list[index];
+        return ShortsWidget(
+          key: ValueKey(video.videoId),
+          video: video,
+          isActive: index == _currentIndex,
+          onBookmark: () {
+            final updated =
+                video.copyWith(isBookmarked: !video.isBookmarked);
+            final newList = [...ref.read(youtubeVideosProvider)];
+            final i = newList.indexWhere((v) => v.videoId == video.videoId);
+            if (i != -1) newList[i] = updated;
+            ref.read(youtubeVideosProvider.notifier).state = newList;
+            ref
+                .read(youtubeRepositoryProvider)
+                .toggleBookmark(video.videoId, updated.isBookmarked);
+          },
+        );
+      },
     );
   }
 }

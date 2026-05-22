@@ -39,7 +39,8 @@ class YoutubeRepository {
         })
         // 임베드 가능 + 60초 이하 쇼츠만 노출. 해당 필드 없는 구버전 캐시는
         // 자동 제외되어 fetchAndCache로 재조회를 유도한다.
-        .where((v) => v.embeddable && v.durationSeconds > 0 && v.durationSeconds <= 60)
+        .where((v) =>
+            v.embeddable && v.durationSeconds > 0 && v.durationSeconds <= 60)
         .toList();
   }
 
