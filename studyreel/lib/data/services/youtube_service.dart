@@ -13,24 +13,27 @@ const _maxShortsSeconds = 60;
 class YoutubeService {
   /// 토픽별 학습 쇼츠 검색 (피드용).
   /// 인앱 임베드 가능 + 60초 이하 영상만 반환한다.
-  /// 검색 정렬 기준 후보. 매 fetch마다 무작위로 골라, 같은 토픽이라도
-  /// 새로고침할 때 다른 영상이 나오도록 한다.
-  static const _orders = ['relevance', 'viewCount', 'date', 'rating'];
+  /// 교육용 검색 접미사. "쇼츠"는 예능·바이럴 쇼츠를 끌어와 학습에 부적합한
+  /// 영상이 많아지므로, 학습 의도가 담긴 키워드를 쓰고 매 fetch마다 무작위로
+  /// 골라 같은 토픽이라도 새로고침 때 다른 영상이 나오도록 한다.
+  static const _eduSuffixes = ['강의', '개념 정리', '쉽게 설명', '핵심 요약', '기초'];
 
   Future<List<YoutubeVideo>> searchShorts(List<String> topics) async {
-    final order = _orders[Random().nextInt(_orders.length)];
+    final suffix = _eduSuffixes[Random().nextInt(_eduSuffixes.length)];
     final videos = <YoutubeVideo>[];
     for (final topic in topics) {
       final items = await _search(
-        query: '$topic 쇼츠',
+        query: '$topic $suffix',
         maxResults: 15,
         videoDuration: 'short', // 4분 미만 (정밀 길이 필터는 아래에서)
-        order: order,
+        // 조회수/최신순은 예능을 상위로 끌어올려 교육 관련성을 떨어뜨림.
+        // relevance(기본)로 학습 쿼리와의 관련성을 우선한다.
+        order: 'relevance',
       );
       videos.addAll(_parseItems(items, topic));
     }
     final playable = await _filterPlayableShorts(videos);
-    playable.shuffle(); // 토픽이 섞이도록 + 새로고침 때 순서가 달라지도록
+    playable.shuffle(); // 토픽이 섞이도록
     return playable;
   }
 
