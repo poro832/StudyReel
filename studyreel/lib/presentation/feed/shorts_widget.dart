@@ -42,6 +42,13 @@ class _ShortsWidgetState extends State<ShortsWidget> {
         // onAutoplayBlocked로 막혀 검은 화면이 됨 → 음소거로 시작 후 탭하면 해제.
         mute: true,
         loop: true,
+        // [실험] error 152-4 회피: youtube-nocookie.com은 유효한 임베드 호스트라
+        // 플레이어가 정상 로드되면서 youtube.com과 다른 도메인이라 152 정책을
+        // 우회할 수 있음. (이 패키지는 origin을 host로도 써서 유효 호스트 필수)
+        origin: 'https://www.youtube-nocookie.com',
+        userAgent:
+            'Mozilla/5.0 (Linux; Android 14; SM-F966N) AppleWebKit/537.36 '
+            '(KHTML, like Gecko) Chrome/126.0.0.0 Mobile Safari/537.36',
       ),
     );
     _sub = _controller.listen((value) {
