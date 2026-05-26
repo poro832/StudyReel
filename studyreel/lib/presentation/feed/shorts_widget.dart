@@ -38,9 +38,10 @@ class _ShortsWidgetState extends State<ShortsWidget> {
         showControls: true,
         showFullscreenButton: false,
         strictRelatedVideos: true,
-        // 무음 자동재생만 브라우저 정책상 허용됨. 소리 있는 자동재생은
-        // onAutoplayBlocked로 막혀 검은 화면이 됨 → 음소거로 시작 후 탭하면 해제.
-        mute: true,
+        // 소리 켠 자동재생. youtube-nocookie 호스트 + 패키지가 설정하는
+        // mediaPlaybackRequiresUserGesture(false) 조합으로 실기기에서
+        // 무음 없이 소리까지 정상 재생됨(Z Fold7 검증).
+        mute: false,
         loop: true,
         // [실험] error 152-4 회피: youtube-nocookie.com은 유효한 임베드 호스트라
         // 플레이어가 정상 로드되면서 youtube.com과 다른 도메인이라 152 정책을
