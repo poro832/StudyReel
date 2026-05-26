@@ -15,8 +15,14 @@ final youtubeFeedProvider =
   (ref, topicsKey) async {
     final topics = topicsKey.split('|');
     final repo = ref.read(youtubeRepositoryProvider);
-    final cached = await repo.loadCached();
-    return cached.isNotEmpty ? cached : await repo.fetchAndCache(topics);
+    final cached = await repo.loadCached(topics: topics);
+    // 선택한 토픽 전부가 캐시에 있을 때만 캐시 사용. 하나라도 없으면
+    // (새 카테고리 선택) 새로 받아온다.
+    final covered = cached.map((v) => v.topic).toSet();
+    final allCovered = topics.every(covered.contains);
+    return (allCovered && cached.isNotEmpty)
+        ? cached
+        : await repo.fetchAndCache(topics);
   },
 );
 

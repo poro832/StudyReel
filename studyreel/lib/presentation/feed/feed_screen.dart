@@ -15,13 +15,48 @@ class FeedScreen extends ConsumerStatefulWidget {
 }
 
 class _FeedScreenState extends ConsumerState<FeedScreen> {
+  final PageController _pageController = PageController();
   int _currentIndex = 0;
-  bool _initialized = false;
+  bool _refreshing = false;
+
+  /// 가변 상태(youtubeVideosProvider)에 시드한 토픽 키. 토픽이 바뀌면
+  /// 키가 달라져 새 목록으로 다시 시드한다.
+  String? _seededKey;
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  /// 현재 토픽으로 새 영상을 강제로 받아와 피드를 갱신한다.
+  Future<void> _refresh() async {
+    if (_refreshing) return;
+    setState(() => _refreshing = true);
+    final topics = ref.read(selectedTopicsProvider).toList()..sort();
+    try {
+      final fresh =
+          await ref.read(youtubeRepositoryProvider).fetchAndCache(topics);
+      if (!mounted) return;
+      ref.read(youtubeVideosProvider.notifier).state = fresh;
+      _currentIndex = 0;
+      if (_pageController.hasClients) _pageController.jumpToPage(0);
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('새로고침에 실패했어요. 잠시 후 다시 시도해주세요.')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _refreshing = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final topics = ref.watch(selectedTopicsProvider).toList()..sort();
-    final videosAsync = ref.watch(youtubeFeedProvider(topics.join('|')));
+    final key = topics.join('|');
+    final videosAsync = ref.watch(youtubeFeedProvider(key));
 
     return Scaffold(
       appBar: AppBar(
@@ -41,6 +76,22 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
                   style: TextStyle(fontSize: 16, color: kTextGray)),
             ),
             const Spacer(),
+            if (_refreshing)
+              const Padding(
+                padding: EdgeInsets.only(right: 12),
+                child: SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                      strokeWidth: 2, color: kPrimaryColor),
+                ),
+              )
+            else
+              IconButton(
+                onPressed: _refresh,
+                icon: const Icon(Icons.refresh, color: kTextColor),
+                tooltip: '새로고침',
+              ),
             GestureDetector(
               onTap: () => context.push('/profile'),
               child: const CircleAvatar(
@@ -58,15 +109,17 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
       ),
       body: videosAsync.when(
         data: (fetchedVideos) {
-          // provider를 항상 watch해야 제거 업데이트가 리빌드를 트리거한다.
+          // provider를 항상 watch해야 갱신이 리빌드를 트리거한다.
           final stateVideos = ref.watch(youtubeVideosProvider);
 
-          // 최초 1회만 provider를 캐시/패치 결과로 초기화. 이후엔 provider
-          // 상태가 단일 소스 — 재생 실패 영상 제거가 그대로 반영된다.
-          if (!_initialized) {
-            _initialized = true;
+          // 토픽 키가 바뀌면(또는 최초) 가변 상태를 새 목록으로 시드한다.
+          if (_seededKey != key) {
+            _seededKey = key;
             WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (!mounted) return;
               ref.read(youtubeVideosProvider.notifier).state = fetchedVideos;
+              _currentIndex = 0;
+              if (_pageController.hasClients) _pageController.jumpToPage(0);
             });
             return _buildPager(fetchedVideos);
           }
@@ -100,6 +153,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
 
   Widget _buildPager(List<YoutubeVideo> list) {
     return PageView.builder(
+      controller: _pageController,
       scrollDirection: Axis.vertical,
       itemCount: list.length,
       onPageChanged: (i) => setState(() => _currentIndex = i),
@@ -110,8 +164,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
           video: video,
           isActive: index == _currentIndex,
           onBookmark: () {
-            final updated =
-                video.copyWith(isBookmarked: !video.isBookmarked);
+            final updated = video.copyWith(isBookmarked: !video.isBookmarked);
             final newList = [...ref.read(youtubeVideosProvider)];
             final i = newList.indexWhere((v) => v.videoId == video.videoId);
             if (i != -1) newList[i] = updated;

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math';
 import 'package:http/http.dart' as http;
 import '../models/youtube_video.dart';
 
@@ -12,17 +13,25 @@ const _maxShortsSeconds = 60;
 class YoutubeService {
   /// 토픽별 학습 쇼츠 검색 (피드용).
   /// 인앱 임베드 가능 + 60초 이하 영상만 반환한다.
+  /// 검색 정렬 기준 후보. 매 fetch마다 무작위로 골라, 같은 토픽이라도
+  /// 새로고침할 때 다른 영상이 나오도록 한다.
+  static const _orders = ['relevance', 'viewCount', 'date', 'rating'];
+
   Future<List<YoutubeVideo>> searchShorts(List<String> topics) async {
+    final order = _orders[Random().nextInt(_orders.length)];
     final videos = <YoutubeVideo>[];
     for (final topic in topics) {
       final items = await _search(
         query: '$topic 쇼츠',
         maxResults: 15,
         videoDuration: 'short', // 4분 미만 (정밀 길이 필터는 아래에서)
+        order: order,
       );
       videos.addAll(_parseItems(items, topic));
     }
-    return _filterPlayableShorts(videos);
+    final playable = await _filterPlayableShorts(videos);
+    playable.shuffle(); // 토픽이 섞이도록 + 새로고침 때 순서가 달라지도록
+    return playable;
   }
 
   /// 키워드 자유 검색 (탐색 화면용). 탐색은 외부 실행이라 필터 미적용.
@@ -35,12 +44,14 @@ class YoutubeService {
     required String query,
     required int maxResults,
     String? videoDuration,
+    String? order,
   }) async {
     final uri = Uri.parse(_searchEndpoint).replace(queryParameters: {
       'part': 'snippet',
       'q': query,
       'type': 'video',
       if (videoDuration != null) 'videoDuration': videoDuration,
+      if (order != null) 'order': order,
       'maxResults': '$maxResults',
       'relevanceLanguage': 'ko',
       'regionCode': 'KR',

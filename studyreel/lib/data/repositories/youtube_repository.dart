@@ -21,7 +21,10 @@ class YoutubeRepository {
   CollectionReference<Map<String, dynamic>> get _videosRef =>
       _firestore.collection('users').doc(_uid).collection('youtube_videos');
 
-  Future<List<YoutubeVideo>> loadCached() async {
+  /// 캐시된 영상을 읽는다. [topics]가 주어지면 해당 토픽의 영상만 반환한다
+  /// (새 카테고리를 고르면 캐시에 없어 재조회가 유도됨). 북마크 조회처럼
+  /// 토픽 무관하게 전부 필요할 때는 [topics]를 생략한다.
+  Future<List<YoutubeVideo>> loadCached({List<String>? topics}) async {
     final snap = await _videosRef.get();
     return snap.docs
         .map((d) {
@@ -40,7 +43,10 @@ class YoutubeRepository {
         // 임베드 가능 + 60초 이하 쇼츠만 노출. 해당 필드 없는 구버전 캐시는
         // 자동 제외되어 fetchAndCache로 재조회를 유도한다.
         .where((v) =>
-            v.embeddable && v.durationSeconds > 0 && v.durationSeconds <= 60)
+            v.embeddable &&
+            v.durationSeconds > 0 &&
+            v.durationSeconds <= 60 &&
+            (topics == null || topics.contains(v.topic)))
         .toList();
   }
 
