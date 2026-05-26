@@ -71,9 +71,39 @@ class YoutubeRepository {
     await _videosRef.doc(videoId).update({'isBookmarked': value});
   }
 
+  /// 새 영상을 받아 캐시를 갱신한다. 해당 토픽의 기존 영상 중 북마크되지
+  /// 않은 것은 삭제해, 오래된·부적합 영상이 다음 로드에 계속 섞이지 않게 한다.
+  /// (북마크된 영상은 보존하고, 새 영상이 기존 북마크와 같으면 상태 유지)
   Future<List<YoutubeVideo>> fetchAndCache(List<String> topics) async {
     final videos = await _service.searchShorts(topics);
-    if (videos.isNotEmpty) await saveAll(videos);
+    if (videos.isEmpty) return videos;
+
+    final snap = await _videosRef.get();
+    final bookmarkedIds = <String>{};
+    final batch = _firestore.batch();
+    for (final doc in snap.docs) {
+      final data = doc.data();
+      if (data['isBookmarked'] == true) bookmarkedIds.add(doc.id);
+      final topic = data['topic'] as String?;
+      if (topic != null &&
+          topics.contains(topic) &&
+          data['isBookmarked'] != true) {
+        batch.delete(doc.reference);
+      }
+    }
+    for (final v in videos) {
+      batch.set(_videosRef.doc(v.videoId), {
+        'videoId': v.videoId,
+        'title': v.title,
+        'channelTitle': v.channelTitle,
+        'topic': v.topic,
+        'thumbnailUrl': v.thumbnailUrl,
+        'isBookmarked': bookmarkedIds.contains(v.videoId),
+        'embeddable': v.embeddable,
+        'durationSeconds': v.durationSeconds,
+      });
+    }
+    await batch.commit();
     return videos;
   }
 

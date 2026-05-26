@@ -3,6 +3,16 @@ import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:firebase_auth_mocks/firebase_auth_mocks.dart';
 import 'package:studyreel/data/repositories/youtube_repository.dart';
 import 'package:studyreel/data/models/youtube_video.dart';
+import 'package:studyreel/data/services/youtube_service.dart';
+
+/// fetchAndCache 검증용 — 네트워크 대신 고정 결과를 반환하는 가짜 서비스.
+class _FakeYoutubeService extends YoutubeService {
+  _FakeYoutubeService(this._result);
+  final List<YoutubeVideo> _result;
+  @override
+  Future<List<YoutubeVideo>> searchShorts(List<String> topics) async =>
+      _result;
+}
 
 void main() {
   group('YoutubeRepository', () {
@@ -69,6 +79,60 @@ void main() {
       await repo.saveAll([v1, longVideo]);
       final loaded = await repo.loadCached();
       expect(loaded.map((e) => e.videoId), ['a1']);
+    });
+
+    test('loadCached(topics) — 선택한 토픽의 영상만 반환', () async {
+      await repo.saveAll([v1, v2]); // v1=수학, v2=과학
+      final math = await repo.loadCached(topics: ['수학']);
+      expect(math.map((e) => e.videoId), ['a1']);
+    });
+
+    test('fetchAndCache — 같은 토픽 비-북마크 영상은 교체, 북마크는 보존', () async {
+      const oldMath = YoutubeVideo(
+        videoId: 'old1',
+        title: '옛 예능 영상',
+        channelTitle: '채널',
+        topic: '수학',
+        thumbnailUrl: 'http://x/old1.jpg',
+        embeddable: true,
+        durationSeconds: 40,
+      );
+      const kept = YoutubeVideo(
+        videoId: 'keep1',
+        title: '북마크한 영상',
+        channelTitle: '채널',
+        topic: '수학',
+        thumbnailUrl: 'http://x/keep1.jpg',
+        embeddable: true,
+        durationSeconds: 50,
+        isBookmarked: true,
+      );
+      await repo.saveAll([oldMath, kept]);
+
+      const fresh = YoutubeVideo(
+        videoId: 'new1',
+        title: '신규 강의',
+        channelTitle: '채널',
+        topic: '수학',
+        thumbnailUrl: 'http://x/new1.jpg',
+        embeddable: true,
+        durationSeconds: 30,
+      );
+      final fetchRepo = YoutubeRepository(
+        firestore: firestore,
+        auth: auth,
+        service: _FakeYoutubeService([fresh]),
+      );
+      await fetchRepo.fetchAndCache(['수학']);
+
+      final loaded = await repo.loadCached(topics: ['수학']);
+      final ids = loaded.map((e) => e.videoId).toSet();
+      expect(ids, containsAll(['new1', 'keep1'])); // 신규 + 북마크 보존
+      expect(ids.contains('old1'), isFalse); // 옛 비북마크 영상 제거
+      expect(
+        loaded.firstWhere((v) => v.videoId == 'keep1').isBookmarked,
+        isTrue,
+      );
     });
 
     test('loadBookmarked — 북마크된 영상만 반환', () async {
