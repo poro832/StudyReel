@@ -62,6 +62,15 @@ class _ShortsWidgetState extends State<ShortsWidget> {
       if (embedBlocked.contains(value.error) && mounted && !_embedFailed) {
         setState(() => _embedFailed = true);
       }
+      // 활성 페이지의 영상이 cue(준비·정지) 상태가 되면 즉시 자동재생.
+      // off-screen에서 미리 cue된 다음 영상도 스와이프해 활성화되는 순간
+      // 바로 재생됨(진짜 쇼츠처럼). 사용자가 일시정지하면 paused 상태라
+      // 여기에 안 걸려 다시 재생되지 않는다.
+      if (widget.isActive &&
+          !_embedFailed &&
+          value.playerState == PlayerState.cued) {
+        _controller.playVideo();
+      }
     });
   }
 
