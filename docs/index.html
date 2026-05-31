@@ -138,26 +138,6 @@
   /* 진행 막대 (reveal 기본) 색 */
   .reveal .progress{ color:var(--blue); height:4px; }
 
-  /* 타이머 */
-  #timer{
-    position:fixed; right:24px; bottom:20px; z-index:50;
-    display:flex; align-items:center; gap:.6rem;
-    background:rgba(18,24,38,.85); backdrop-filter:blur(8px);
-    border:1px solid var(--line); border-radius:14px; padding:.55rem .7rem .55rem .9rem;
-    box-shadow:0 10px 30px rgba(0,0,0,.5);
-  }
-  #timer .clock{ font-family:var(--mono); font-size:1.6rem; font-weight:700; color:#fff; letter-spacing:.02em; min-width:3.6ch; }
-  #timer.warn .clock{ color:var(--orange); }
-  #timer.over .clock{ color:#FF5C5C; animation:blink .8s steps(2) infinite; }
-  @keyframes blink{ 50%{ opacity:.25; } }
-  #timer button{
-    font-family:var(--mono); font-size:.78rem; font-weight:700; cursor:pointer;
-    color:var(--text); background:var(--ink-3); border:1px solid var(--line);
-    border-radius:9px; padding:.4rem .6rem;
-  }
-  #timer button:hover{ border-color:var(--blue); color:var(--blue-soft); }
-  #timer .hint{ font-family:var(--mono); font-size:.62rem; color:var(--muted); }
-
   a.btn{
     display:inline-flex; align-items:center; gap:.5rem; text-decoration:none;
     font-weight:700; color:#fff; background:var(--blue); padding:.7rem 1.1rem; border-radius:12px;
@@ -346,14 +326,6 @@ flowchart LR
 
 <div class="footer-meta">STUDYREEL · 中間發表 · 2026</div>
 
-<!-- 2분 타이머 -->
-<div id="timer">
-  <span class="clock">2:00</span>
-  <button id="t-start">시작</button>
-  <button id="t-reset">리셋</button>
-  <span class="hint">T 시작/정지 · R 리셋</span>
-</div>
-
 <script type="module">
   import Reveal from 'https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.esm.js';
   import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
@@ -380,30 +352,6 @@ flowchart LR
   });
   await mermaid.run({ querySelector:'.mermaid' });
   deck.layout();
-
-  /* ---- 2분 타이머 ---- */
-  const TOTAL = 120;
-  let left = TOTAL, running = false, iv = null;
-  const box = document.getElementById('timer');
-  const clock = box.querySelector('.clock');
-  const fmt = s => `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;
-  function render(){
-    clock.textContent = left < 0 ? '+'+fmt(-left) : fmt(left);
-    box.classList.toggle('warn', left <= 30 && left > 0);
-    box.classList.toggle('over', left <= 0);
-  }
-  function tick(){ left--; render(); }
-  function start(){ if(running) return; running=true; document.getElementById('t-start').textContent='정지'; iv=setInterval(tick,1000); }
-  function stop(){ running=false; document.getElementById('t-start').textContent='시작'; clearInterval(iv); }
-  function toggle(){ running ? stop() : start(); }
-  function reset(){ stop(); left=TOTAL; render(); }
-  document.getElementById('t-start').onclick = toggle;
-  document.getElementById('t-reset').onclick = reset;
-  window.addEventListener('keydown', e=>{
-    if(e.key==='t'||e.key==='T'){ e.preventDefault(); toggle(); }
-    if(e.key==='r'||e.key==='R'){ e.preventDefault(); reset(); }
-  });
-  render();
 </script>
 </body>
 </html>
