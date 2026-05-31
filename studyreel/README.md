@@ -152,7 +152,7 @@ adb install -r C:/temp/studyreel_build/app/outputs/flutter-apk/app-debug.apk
 
 ## 📄 라이선스
 
-학습용 프로젝트 (경희대학교 클라우드 캡스톤)
+학습용 프로젝트 (신구대학교 클라우드 캡스톤)
 
 ---
 

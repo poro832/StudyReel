@@ -121,4 +121,4 @@ controller.listen((value) {
 
 ---
 
-*StudyReel — 경희대 클라우드 캡스톤 / Flutter. 코드: github.com/poro832/StudyReel*
+*StudyReel — 신구대 클라우드 캡스톤 / Flutter. 코드: github.com/poro832/StudyReel*
