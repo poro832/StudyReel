@@ -215,7 +215,6 @@ gantt
   mermaid.initialize({
     startOnLoad:false, theme:'base',
     themeVariables:{
-      fontFamily:'JetBrains Mono, Pretendard, sans-serif',
       primaryColor:'#1B2436', primaryBorderColor:'#3182F6', primaryTextColor:'#F4F6FB',
       lineColor:'#6BA6FF',
       // gantt 색
@@ -229,7 +228,11 @@ gantt
       todayLineColor:'#FF8A3D',
     },
   });
-  await mermaid.run({ querySelector:'.mermaid' });
+  // 일반(가시) 페이지라 run()으로 충분. 폰트 로드 후 측정.
+  if (document.fonts && document.fonts.ready) { try { await document.fonts.ready; } catch(e){} }
+  try {
+    await mermaid.run({ querySelector:'pre.mermaid', suppressErrors:true });
+  } catch (err) { console.error('mermaid run failed', err); }
 </script>
 </body>
 </html>
