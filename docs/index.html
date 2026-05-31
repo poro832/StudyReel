@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>StudyReel — 중간 발표</title>
+
+<!-- 폰트: Pretendard (한글 디스플레이/본문) + JetBrains Mono (숫자/코드) -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet" />
+
+<!-- reveal.js 코어 -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.css" />
+
+<style>
+  :root{
+    --ink:#0B0F19;        /* 배경 잉크 */
+    --ink-2:#121826;      /* 표면 */
+    --ink-3:#1B2436;      /* 카드 */
+    --blue:#3182F6;       /* 토스 블루 */
+    --blue-soft:#6BA6FF;
+    --orange:#FF8A3D;     /* 스트릭 오렌지 */
+    --text:#F4F6FB;
+    --muted:#8A93A6;
+    --line:#26314A;
+    --ok:#34D399;
+    --font:"Pretendard Variable",Pretendard,sans-serif;
+    --mono:"JetBrains Mono",monospace;
+  }
+
+  html,body{background:var(--ink);}
+  .reveal{
+    font-family:var(--font);
+    color:var(--text);
+    font-weight:500;
+    letter-spacing:-0.01em;
+  }
+
+  /* 배경: 미세 그리드 + 블루 글로우 + 그레인 */
+  .reveal .backgrounds, .reveal-viewport{
+    background:
+      radial-gradient(1200px 600px at 78% -10%, rgba(49,130,246,.22), transparent 60%),
+      radial-gradient(900px 500px at 8% 108%, rgba(255,138,61,.12), transparent 60%),
+      var(--ink);
+  }
+  .grid-bg{
+    position:fixed; inset:0; pointer-events:none; z-index:0;
+    background-image:
+      linear-gradient(to right, rgba(255,255,255,.035) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(255,255,255,.035) 1px, transparent 1px);
+    background-size:64px 64px;
+    mask-image:radial-gradient(circle at 50% 40%, black, transparent 85%);
+  }
+  .grain{
+    position:fixed; inset:0; pointer-events:none; z-index:1; opacity:.05;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  .reveal .slides{ text-align:left; }
+  .reveal .slides section{ height:100%; }
+
+  /* 타이포 */
+  .reveal h1{ font-size:4.2rem; font-weight:800; line-height:1.02; letter-spacing:-0.03em; color:var(--text); margin:0; }
+  .reveal h2{ font-size:2.5rem; font-weight:800; letter-spacing:-0.02em; color:var(--text); margin:0 0 .6rem; }
+  .reveal h3{ font-size:1.3rem; font-weight:700; color:var(--blue-soft); margin:0 0 1rem; }
+  .reveal p,.reveal li{ font-size:1.25rem; line-height:1.55; color:#D7DCE7; font-weight:500; }
+  .reveal strong{ color:#fff; font-weight:800; }
+  .accent{ color:var(--blue); }
+  .accent-o{ color:var(--orange); }
+  .mono{ font-family:var(--mono); }
+
+  /* 칩 / 카드 */
+  .kicker{
+    display:inline-flex; align-items:center; gap:.5rem;
+    font-family:var(--mono); font-size:.8rem; font-weight:700; letter-spacing:.12em;
+    text-transform:uppercase; color:var(--blue-soft);
+    border:1px solid var(--line); border-radius:999px; padding:.4rem .85rem;
+    background:rgba(49,130,246,.08);
+  }
+  .dot{ width:8px;height:8px;border-radius:50%;background:var(--orange);box-shadow:0 0 12px var(--orange); }
+
+  .grid2{ display:grid; grid-template-columns:1fr 1fr; gap:1.5rem; align-items:start; }
+  .grid3{ display:grid; grid-template-columns:repeat(3,1fr); gap:1.2rem; }
+  .card{
+    background:linear-gradient(180deg, var(--ink-3), var(--ink-2));
+    border:1px solid var(--line); border-radius:18px; padding:1.4rem 1.5rem;
+  }
+  .card .big{ font-family:var(--mono); font-size:2.8rem; font-weight:700; color:#fff; line-height:1; }
+  .card .lbl{ font-size:.95rem; color:var(--muted); margin-top:.45rem; }
+
+  .pill{ display:inline-block; font-size:.95rem; font-weight:700; padding:.35rem .8rem; border-radius:999px; margin:.2rem .25rem .2rem 0; }
+  .pill.b{ background:rgba(49,130,246,.16); color:var(--blue-soft); border:1px solid rgba(49,130,246,.35); }
+  .pill.o{ background:rgba(255,138,61,.14); color:var(--orange); border:1px solid rgba(255,138,61,.35); }
+
+  .lead{ font-size:1.7rem; line-height:1.5; color:#EAEEF6; font-weight:600; }
+  .quote{
+    border-left:4px solid var(--blue); padding:.4rem 0 .4rem 1.2rem;
+    font-size:1.55rem; line-height:1.5; color:#fff; font-weight:700;
+  }
+
+  .timeline{ display:grid; grid-template-columns:repeat(4,1fr); gap:0; margin-top:1rem; }
+  .tl{ position:relative; padding:1rem 1rem 0; border-top:2px solid var(--line); }
+  .tl::before{ content:""; position:absolute; top:-7px; left:0; width:12px; height:12px; border-radius:50%; background:var(--ink); border:2px solid var(--muted); }
+  .tl.done::before{ background:var(--blue); border-color:var(--blue); box-shadow:0 0 12px var(--blue); }
+  .tl.now::before{ background:var(--orange); border-color:var(--orange); box-shadow:0 0 12px var(--orange); }
+  .tl .w{ font-family:var(--mono); font-size:.85rem; color:var(--muted); }
+  .tl .t{ font-size:1.05rem; font-weight:700; color:#fff; margin-top:.2rem; }
+
+  /* 진행률 바 */
+  .bar{ height:14px; border-radius:999px; background:var(--ink-3); overflow:hidden; border:1px solid var(--line); }
+  .bar > span{ display:block; height:100%; width:62%; border-radius:999px;
+    background:linear-gradient(90deg,var(--blue),var(--blue-soft)); box-shadow:0 0 18px rgba(49,130,246,.6); }
+
+  /* mermaid 컨테이너 */
+  .reveal pre.mermaid{ background:transparent; box-shadow:none; font-size:inherit; text-align:center; }
+  .reveal pre.mermaid svg{ max-height:62vh; }
+
+  /* 폰 목업 (타이틀) */
+  .phone{
+    width:200px; height:420px; border-radius:34px; padding:10px;
+    background:linear-gradient(160deg,#1E2840,#0E1422);
+    border:1px solid var(--line); box-shadow:0 30px 80px rgba(0,0,0,.6), 0 0 0 1px rgba(49,130,246,.15);
+    position:relative; transform:rotate(4deg);
+  }
+  .phone .scr{ width:100%; height:100%; border-radius:26px; overflow:hidden;
+    background:linear-gradient(180deg,#0a0e18,#10182a); position:relative; }
+  .phone .play{ position:absolute; inset:0; margin:auto; width:64px;height:64px; border-radius:50%;
+    background:var(--blue); display:grid; place-items:center; box-shadow:0 0 30px rgba(49,130,246,.7); }
+  .phone .play::after{ content:""; border-left:18px solid #fff; border-top:11px solid transparent; border-bottom:11px solid transparent; margin-left:4px; }
+  .phone .cap{ position:absolute; left:14px; right:14px; bottom:16px; }
+  .phone .cap .tag{ display:inline-block; font-size:.65rem; font-weight:800; color:#fff; background:var(--blue); padding:3px 8px; border-radius:8px; }
+  .phone .cap .ttl{ color:#fff; font-size:.8rem; font-weight:700; margin-top:6px; }
+
+  .footer-meta{ position:fixed; left:28px; bottom:20px; z-index:5;
+    font-family:var(--mono); font-size:.72rem; color:var(--muted); letter-spacing:.08em; }
+
+  /* 진행 막대 (reveal 기본) 색 */
+  .reveal .progress{ color:var(--blue); height:4px; }
+
+  /* 타이머 */
+  #timer{
+    position:fixed; right:24px; bottom:20px; z-index:50;
+    display:flex; align-items:center; gap:.6rem;
+    background:rgba(18,24,38,.85); backdrop-filter:blur(8px);
+    border:1px solid var(--line); border-radius:14px; padding:.55rem .7rem .55rem .9rem;
+    box-shadow:0 10px 30px rgba(0,0,0,.5);
+  }
+  #timer .clock{ font-family:var(--mono); font-size:1.6rem; font-weight:700; color:#fff; letter-spacing:.02em; min-width:3.6ch; }
+  #timer.warn .clock{ color:var(--orange); }
+  #timer.over .clock{ color:#FF5C5C; animation:blink .8s steps(2) infinite; }
+  @keyframes blink{ 50%{ opacity:.25; } }
+  #timer button{
+    font-family:var(--mono); font-size:.78rem; font-weight:700; cursor:pointer;
+    color:var(--text); background:var(--ink-3); border:1px solid var(--line);
+    border-radius:9px; padding:.4rem .6rem;
+  }
+  #timer button:hover{ border-color:var(--blue); color:var(--blue-soft); }
+  #timer .hint{ font-family:var(--mono); font-size:.62rem; color:var(--muted); }
+
+  a.btn{
+    display:inline-flex; align-items:center; gap:.5rem; text-decoration:none;
+    font-weight:700; color:#fff; background:var(--blue); padding:.7rem 1.1rem; border-radius:12px;
+    box-shadow:0 8px 24px rgba(49,130,246,.4);
+  }
+  a.btn.ghost{ background:transparent; border:1px solid var(--line); color:var(--blue-soft); box-shadow:none; }
+</style>
+</head>
+<body>
+<div class="grid-bg"></div>
+<div class="grain"></div>
+
+<div class="reveal">
+  <div class="slides">
+
+    <!-- 1. 타이틀 -->
+    <section data-auto-animate>
+      <div style="display:grid; grid-template-columns:1.4fr .9fr; gap:2rem; align-items:center; height:100%;">
+        <div>
+          <span class="kicker"><span class="dot"></span> 경희대 클라우드 캡스톤 · 중간 발표</span>
+          <h1 style="margin-top:1.4rem;">Study<span class="accent">Reel</span></h1>
+          <p class="lead" style="margin-top:1.1rem; max-width:22ch;">
+            유튜브 쇼츠를 <strong>교육으로</strong>.<br/>
+            앱을 떠나지 않는 <span class="accent">세로 학습 피드</span>.
+          </p>
+          <div style="margin-top:1.6rem;">
+            <span class="pill b">Flutter</span><span class="pill b">Firebase</span>
+            <span class="pill b">YouTube API</span><span class="pill o">1인 + AI Agent</span>
+          </div>
+        </div>
+        <div style="display:grid; place-items:center;">
+          <div class="phone">
+            <div class="scr">
+              <div class="play"></div>
+              <div class="cap">
+                <span class="tag">영어</span>
+                <div class="ttl">무조건 외우는 영어 표현 #shorts</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. 문제 정의 -->
+    <section>
+      <h3>01 — 문제 정의</h3>
+      <div class="quote" style="margin-bottom:1.6rem;">
+        “공부하려고 켠 유튜브, <span class="accent-o">5분 뒤엔 예능</span>을 보고 있다.”
+      </div>
+      <div class="grid3">
+        <div class="card">
+          <div class="big">∞</div>
+          <div class="lbl">알고리즘 토끼굴 — 추천·댓글·다음 영상이 집중을 끊는다</div>
+        </div>
+        <div class="card">
+          <div class="big">15s</div>
+          <div class="lbl">짧은 학습 욕구는 있지만, 교육 콘텐츠는 흩어져 있다</div>
+        </div>
+        <div class="card" style="border-color:rgba(49,130,246,.5);">
+          <div class="big accent">한 줄</div>
+          <div class="lbl"><strong>토픽만 고르면, 광고·토끼굴 없는 교육 쇼츠가 흐르는 학습 피드</strong></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. 비전 / 사용자 시나리오 -->
+    <section>
+      <h3>02 — 비전 · 사용자 시나리오</h3>
+      <div class="grid2">
+        <div>
+          <p class="quote">
+            대학생이 <span class="accent">관심 토픽 3개</span>를 고르면<br/>
+            교육용 쇼츠가 세로로 흐르고,<br/>
+            <strong>앱 안에서 소리·자동재생</strong>으로 바로 학습한다.
+          </p>
+          <div style="margin-top:1.2rem;">
+            <span class="pill b">세로 스와이프</span>
+            <span class="pill b">인앱 재생</span>
+            <span class="pill b">북마크 · 학습 스트릭</span>
+            <span class="pill o">새로고침 = 새 영상</span>
+          </div>
+        </div>
+        <div class="card">
+          <h3 style="color:var(--orange); margin-bottom:.8rem;">차별점</h3>
+          <p style="margin:.3rem 0;">🎯 <strong>큐레이션</strong> — 학습 키워드 검색 + 관련도 정렬로 예능 배제</p>
+          <p style="margin:.3rem 0;">🔒 <strong>몰입</strong> — 토끼굴 없이 고른 토픽만</p>
+          <p style="margin:.3rem 0;">⚡ <strong>인앱</strong> — YouTube로 튕기지 않음</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. 아키텍처 (Mermaid) -->
+    <section>
+      <h3>03 — 설계 · 아키텍처</h3>
+      <pre class="mermaid">
+flowchart LR
+  subgraph UI["Flutter · Presentation"]
+    OB["온보딩<br/>토픽 선택"] --> FEED["피드<br/>세로 PageView"]
+    FEED --> PLAYER["ShortsWidget<br/>인앱 IFrame 플레이어"]
+  end
+  subgraph STATE["Riverpod · Domain"]
+    PROV["youtubeFeedProvider<br/>FutureProvider.family"]
+  end
+  subgraph DATA["Data"]
+    REPO["YoutubeRepository"]
+    SVC["YoutubeService"]
+  end
+  FEED --> PROV
+  PROV --> REPO
+  REPO -->|"캐시 우선"| FS[("Cloud Firestore<br/>토픽별 캐시")]
+  REPO -->|"미스 시 조회"| SVC
+  SVC -->|"search · videos.list"| YT[["YouTube Data API v3"]]
+  PLAYER -.->|"youtube-nocookie 호스트"| YTE[["YouTube IFrame<br/>인앱 재생"]]
+  AUTH["Firebase Auth<br/>guest UID"] --> REPO
+</pre>
+      <p style="text-align:center; color:var(--muted); font-size:1rem; margin-top:.4rem;">
+        무료 할당량 보호를 위해 <span class="accent">Firestore 캐싱</span> · API 키는 빌드 타임 <span class="mono">--dart-define</span> 주입
+      </p>
+    </section>
+
+    <!-- 5. 핵심 성과 (error 152) -->
+    <section>
+      <h3>04 — 핵심 성과 · 가설–검증 디버깅</h3>
+      <div class="grid2">
+        <div class="card" style="border-color:rgba(255,138,61,.4);">
+          <h2 class="mono" style="font-size:1.8rem; color:var(--orange);">error 152</h2>
+          <p style="margin-top:.4rem;">YouTube Shorts는 서드파티 임베드를 차단 → 인앱 재생 불가.
+            API의 <span class="mono">embeddable=true</span> 플래그조차 거짓.</p>
+          <p style="margin-top:.6rem; color:var(--muted);">
+            “WebView 합성 불가 / autoplay 차단” 가설을 <strong>실측으로 폐기</strong>,
+            라이브러리 소스에서 <span class="mono">origin=host</span> 동작을 규명.
+          </p>
+        </div>
+        <div class="card" style="border-color:rgba(52,211,153,.4);">
+          <h2 style="font-size:1.6rem; color:var(--ok);">→ 돌파</h2>
+          <p style="margin-top:.4rem;">임베드 호스트를 <span class="accent">youtube-nocookie</span>로 교체 →
+            152 소멸, <strong>실기기(Z Fold7)에서 인앱 재생 성공</strong>.</p>
+          <div style="margin-top:.8rem;">
+            <span class="pill o">소리 자동재생</span>
+            <span class="pill o">스와이프 자동재생</span>
+            <span class="pill b">19 tests 통과</span>
+          </div>
+        </div>
+      </div>
+      <p style="text-align:center; margin-top:1rem; color:var(--blue-soft);">
+        Claude · GPT · Gemini를 <strong>역할별로 나눠 쓰고 출력을 교차검증</strong> → 해법 채택
+      </p>
+    </section>
+
+    <!-- 6. 진행 + WBS + 일정 -->
+    <section>
+      <h3>05 — 진행 상황 · 남은 일정</h3>
+      <div style="display:flex; align-items:center; gap:1rem; margin-bottom:.4rem;">
+        <div style="font-family:var(--mono); font-size:1.1rem; color:#fff;">Must 기능 진척</div>
+        <div class="bar" style="flex:1;"><span></span></div>
+        <div class="mono accent" style="font-size:1.4rem; font-weight:700;">62%</div>
+      </div>
+      <div class="timeline">
+        <div class="tl done"><div class="w">W11–12</div><div class="t">온보딩 · 인앱 피드</div></div>
+        <div class="tl now"><div class="w">W12 (지금)</div><div class="t">큐레이션 · 새로고침</div></div>
+        <div class="tl"><div class="w">W13–14</div><div class="t">9:16 UI · 무한 스크롤</div></div>
+        <div class="tl"><div class="w">W15</div><div class="t">보안 규칙 · 최종 발표</div></div>
+      </div>
+      <div style="margin-top:1.6rem; display:flex; gap:.8rem; align-items:center;">
+        <a class="btn" href="wbs.html">📊 전체 WBS 보기</a>
+        <a class="btn ghost" href="https://github.com/poro832/StudyReel" target="_blank">GitHub 저장소</a>
+        <span style="color:var(--muted); font-size:.95rem;">진행 상황을 WBS 페이지에서 일괄 확인</span>
+      </div>
+    </section>
+
+    <!-- 7. 클로징 -->
+    <section data-auto-animate>
+      <div style="height:100%; display:grid; place-content:center; text-align:center;">
+        <span class="kicker" style="justify-self:center;"><span class="dot"></span> AI는 숨기지 않습니다</span>
+        <h1 style="margin-top:1.2rem; font-size:3.4rem;">감사합니다 <span class="accent">·</span> 질문 받습니다</h1>
+        <p class="lead" style="margin-top:1rem; justify-self:center; max-width:30ch;">
+          “이 부분은 AI Agent가 생성했고, 저는 <span class="accent">소스 검증·실기기 확인</span>으로 채택했습니다.”
+        </p>
+        <p class="mono" style="color:var(--muted); margin-top:1.4rem;">github.com/poro832/StudyReel</p>
+      </div>
+    </section>
+
+  </div>
+</div>
+
+<div class="footer-meta">STUDYREEL · 中間發表 · 2026</div>
+
+<!-- 2분 타이머 -->
+<div id="timer">
+  <span class="clock">2:00</span>
+  <button id="t-start">시작</button>
+  <button id="t-reset">리셋</button>
+  <span class="hint">T 시작/정지 · R 리셋</span>
+</div>
+
+<script type="module">
+  import Reveal from 'https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.esm.js';
+  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+
+  const deck = new Reveal({
+    hash:true, transition:'slide', transitionSpeed:'default',
+    width:1280, height:720, margin:0.06,
+    controlsTutorial:false, slideNumber:'c/t',
+  });
+  await deck.initialize();
+
+  // Mermaid — 다크 테마 (브랜드 색)
+  mermaid.initialize({
+    startOnLoad:false,
+    theme:'base',
+    themeVariables:{
+      fontFamily:'JetBrains Mono, Pretendard, sans-serif',
+      primaryColor:'#1B2436', primaryBorderColor:'#3182F6', primaryTextColor:'#F4F6FB',
+      lineColor:'#6BA6FF', secondaryColor:'#121826', tertiaryColor:'#121826',
+      clusterBkg:'rgba(49,130,246,.06)', clusterBorder:'#26314A',
+      edgeLabelBackground:'#0B0F19',
+    },
+    flowchart:{ curve:'basis', padding:14 },
+  });
+  await mermaid.run({ querySelector:'.mermaid' });
+  deck.layout();
+
+  /* ---- 2분 타이머 ---- */
+  const TOTAL = 120;
+  let left = TOTAL, running = false, iv = null;
+  const box = document.getElementById('timer');
+  const clock = box.querySelector('.clock');
+  const fmt = s => `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;
+  function render(){
+    clock.textContent = left < 0 ? '+'+fmt(-left) : fmt(left);
+    box.classList.toggle('warn', left <= 30 && left > 0);
+    box.classList.toggle('over', left <= 0);
+  }
+  function tick(){ left--; render(); }
+  function start(){ if(running) return; running=true; document.getElementById('t-start').textContent='정지'; iv=setInterval(tick,1000); }
+  function stop(){ running=false; document.getElementById('t-start').textContent='시작'; clearInterval(iv); }
+  function toggle(){ running ? stop() : start(); }
+  function reset(){ stop(); left=TOTAL; render(); }
+  document.getElementById('t-start').onclick = toggle;
+  document.getElementById('t-reset').onclick = reset;
+  window.addEventListener('keydown', e=>{
+    if(e.key==='t'||e.key==='T'){ e.preventDefault(); toggle(); }
+    if(e.key==='r'||e.key==='R'){ e.preventDefault(); reset(); }
+  });
+  render();
+</script>
+</body>
+</html>
