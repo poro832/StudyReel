@@ -123,6 +123,19 @@
   .toc-t{ font-size:1.35rem; font-weight:800; color:#fff; letter-spacing:-0.01em; }
   .toc-d{ font-size:1rem; color:var(--muted); margin-top:.1rem; }
 
+  /* 문 비유 */
+  .door{ background:linear-gradient(180deg,var(--ink-3),var(--ink-2)); border:1px solid var(--line);
+    border-radius:18px; padding:1.5rem 1.3rem; text-align:center; }
+  .door-no{ border-color:rgba(255,92,92,.45); }
+  .door-ok{ border-color:rgba(52,211,153,.5); }
+  .door-ico{ font-size:3.4rem; line-height:1; }
+  .door-tag{ font-family:var(--mono); font-size:.95rem; font-weight:700; margin-top:.6rem; }
+  .door-no .door-tag{ color:#FF7A7A; }
+  .door-ok .door-tag{ color:var(--ok); }
+  .door-msg{ font-size:1.3rem; color:#EAEEF6; margin:.8rem 0 1rem; line-height:1.4; }
+  .pill.no{ background:rgba(255,92,92,.14); color:#FF8A8A; border:1px solid rgba(255,92,92,.4); }
+  .pill.ok{ background:rgba(52,211,153,.14); color:var(--ok); border:1px solid rgba(52,211,153,.4); }
+
   /* 아키텍처 이미지 카드 */
   .arch-card{ background:#fff; border-radius:16px; padding:10px;
     box-shadow:0 12px 34px rgba(0,0,0,.4); display:flex; align-items:center; justify-content:center; }
@@ -200,11 +213,11 @@
       <div class="toc">
         <div class="toc-item">
           <span class="toc-no">01</span>
-          <div><div class="toc-t">문제 정의</div><div class="toc-d">학습을 방해하는 알고리즘 토끼굴</div></div>
+          <div><div class="toc-t">문제 정의</div><div class="toc-d">학습을 방해하는 알고리즘</div></div>
         </div>
         <div class="toc-item">
           <span class="toc-no">02</span>
-          <div><div class="toc-t">비전 · 사용자 시나리오</div><div class="toc-d">토끼굴 없는 교육 쇼츠 피드</div></div>
+          <div><div class="toc-t">비전 · 사용자 시나리오</div><div class="toc-d">알고리즘에 휘둘리지 않는 교육 쇼츠 피드</div></div>
         </div>
         <div class="toc-item">
           <span class="toc-no">03</span>
@@ -230,7 +243,7 @@
       <div class="grid3">
         <div class="card">
           <div class="big">∞</div>
-          <div class="lbl">알고리즘 토끼굴 — 추천·댓글·다음 영상이 집중을 끊는다</div>
+          <div class="lbl">알고리즘 — 다음 영상·댓글이 자꾸 딴 길로 끌어 집중을 끊는다</div>
         </div>
         <div class="card">
           <div class="big">15s</div>
@@ -238,7 +251,7 @@
         </div>
         <div class="card" style="border-color:rgba(49,130,246,.5);">
           <div class="big accent">한 줄</div>
-          <div class="lbl"><strong>토픽만 고르면, 광고·토끼굴 없는 교육 쇼츠가 흐르는 학습 피드</strong></div>
+          <div class="lbl"><strong>토픽만 고르면, 광고·알고리즘 휘둘림 없는 교육 쇼츠가 흐르는 학습 피드</strong></div>
         </div>
       </div>
     </section>
@@ -263,7 +276,7 @@
         <div class="card">
           <h3 style="color:var(--orange); margin-bottom:.8rem;">차별점</h3>
           <p style="margin:.3rem 0;">🎯 <strong>큐레이션</strong> — 학습 키워드 검색 + 관련도 정렬로 예능 배제</p>
-          <p style="margin:.3rem 0;">🔒 <strong>몰입</strong> — 토끼굴 없이 고른 토픽만</p>
+          <p style="margin:.3rem 0;">🔒 <strong>몰입</strong> — 알고리즘에 휘둘리지 않고 고른 토픽만</p>
           <p style="margin:.3rem 0;">⚡ <strong>인앱</strong> — YouTube로 튕기지 않음</p>
         </div>
       </div>
@@ -312,7 +325,36 @@
       </p>
     </section>
 
-    <!-- 6. 진행 + WBS + 일정 -->
+    <!-- 6. 핵심 성과 — 쉬운 비유 (문) -->
+    <section>
+      <h3>04 — 쉽게 말하면 : ‘문’ 이야기</h3>
+      <div style="display:grid; grid-template-columns:1fr auto 1fr; gap:1.1rem; align-items:center;">
+        <!-- 정문: 막힘 -->
+        <div class="door door-no">
+          <div class="door-ico">🚪</div>
+          <div class="door-tag">정문 · youtube.com</div>
+          <div class="door-msg">“이 영상은 외부 앱에선<br/><strong>못 봅니다</strong>”</div>
+          <span class="pill no">✕ error 152</span>
+        </div>
+        <!-- 가운데 -->
+        <div style="text-align:center;">
+          <div style="color:var(--muted); font-size:1rem; line-height:1.4;">같은 건물<br/>같은 영상</div>
+          <div style="color:var(--blue); font-size:2.4rem; font-weight:800; margin-top:.3rem;">→</div>
+        </div>
+        <!-- 다른 문: 열림 -->
+        <div class="door door-ok">
+          <div class="door-ico">🚪</div>
+          <div class="door-tag">다른 문 · youtube-nocookie</div>
+          <div class="door-msg">똑같은 영상이<br/><strong>그대로 재생</strong> ▶</div>
+          <span class="pill ok">✓ 인앱 재생 성공</span>
+        </div>
+      </div>
+      <p style="text-align:center; margin-top:1.5rem; font-size:1.5rem; font-weight:800; color:#fff;">
+        막힌 건 영상이 아니라 <span class="accent-o">‘들어가는 문’</span>이었습니다.
+      </p>
+    </section>
+
+    <!-- 7. 진행 + WBS + 일정 -->
     <section>
       <h3>05 — 진행 상황 · 남은 일정</h3>
       <div style="display:flex; align-items:center; gap:1rem; margin-bottom:.4rem;">
