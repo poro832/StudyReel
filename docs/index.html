@@ -112,8 +112,11 @@
     background:linear-gradient(90deg,var(--blue),var(--blue-soft)); box-shadow:0 0 18px rgba(49,130,246,.6); }
 
   /* mermaid 컨테이너 */
-  .reveal pre.mermaid{ background:transparent; box-shadow:none; font-size:inherit; text-align:center; margin:0; }
-  .reveal pre.mermaid svg{ max-width:100% !important; width:auto; height:auto; max-height:56vh; }
+  .arch-card{ background:#fff; border-radius:16px; padding:10px;
+    box-shadow:0 12px 34px rgba(0,0,0,.4); display:flex; align-items:center; justify-content:center; }
+  .arch-card img{ width:100%; height:auto; max-height:62vh; object-fit:contain; display:block; }
+  .arch-cap{ text-align:center; color:var(--muted); font-size:1rem; margin-top:.7rem; }
+  .arch-cap .accent{ color:var(--blue); }
 
   /* 폰 목업 (타이틀) */
   .phone{
@@ -226,39 +229,17 @@
       </div>
     </section>
 
-    <!-- 4. 아키텍처 (Mermaid) -->
+    <!-- 4. 아키텍처 (Napkin AI 다이어그램) -->
     <section>
       <h3>03 — 설계 · 아키텍처</h3>
-      <pre class="mermaid">
-flowchart LR
-  subgraph APP["📱 StudyReel · Flutter"]
-    direction TB
-    OB["🎯 온보딩 · 토픽선택"] --> FEED["🎞️ 피드 · 세로 스와이프"]
-    FEED --> PLAYER["▶️ 인앱 플레이어"]
-    FEED --> PROV["🧩 Provider"]
-    PROV --> REPO["📦 Repository"]
-    REPO --> SVC["🔌 Service"]
-  end
-  subgraph CLOUD["☁️ 외부 · 클라우드"]
-    direction TB
-    FS[("💾 Firestore 캐시")]
-    YT["📺 YouTube Data API"]
-    AUTH["🔐 Firebase Auth"]
-  end
-  REPO -->|캐시 우선| FS
-  SVC -->|search / videos.list| YT
-  PLAYER -.youtube-nocookie.-> YT
-  AUTH --> REPO
-
-  classDef ui fill:#1B2436,stroke:#3182F6,color:#F4F6FB;
-  classDef ext fill:#241a10,stroke:#FF8A3D,color:#FFD9B8;
-  class OB,FEED,PLAYER,PROV,REPO,SVC ui;
-  class FS,YT,AUTH ext;
-  style APP fill:#0e1626,stroke:#26314A,color:#6BA6FF;
-  style CLOUD fill:#1a130a,stroke:#3a2a1a,color:#FF8A3D;
-</pre>
-      <p style="text-align:center; color:var(--muted); font-size:1rem; margin-top:.4rem;">
-        무료 할당량 보호를 위해 <span class="accent">Firestore 캐싱</span> · API 키는 빌드 타임 <span class="mono">--dart-define</span> 주입
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.2rem; align-items:center;">
+        <div class="arch-card"><img src="assets/arch-layers.png" alt="4계층 아키텍처: 프레젠테이션·상태관리·데이터·외부" /></div>
+        <div class="arch-card"><img src="assets/arch-dataflow.png" alt="데이터 흐름: 피드→Provider→Repository→Firestore/YouTube API" /></div>
+      </div>
+      <p class="arch-cap">
+        <strong style="color:#fff;">캐시 우선</strong> 데이터 흐름 ·
+        <span class="accent">Firestore 캐싱</span>으로 무료 할당량 보호 ·
+        인앱 재생은 <span class="mono">youtube-nocookie</span> 호스트
       </p>
     </section>
 
@@ -329,7 +310,6 @@ flowchart LR
 
 <script type="module">
   import Reveal from 'https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.esm.js';
-  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
 
   const deck = new Reveal({
     hash:true, transition:'slide', transitionSpeed:'default',
@@ -337,44 +317,6 @@ flowchart LR
     center:true, controlsTutorial:false, slideNumber:'c/t',
   });
   await deck.initialize();
-
-  // Mermaid — 다크 테마 (브랜드 색)
-  mermaid.initialize({
-    startOnLoad:false,
-    theme:'base',
-    themeVariables:{
-      primaryColor:'#1B2436', primaryBorderColor:'#3182F6', primaryTextColor:'#F4F6FB',
-      lineColor:'#6BA6FF', secondaryColor:'#121826', tertiaryColor:'#121826',
-      clusterBkg:'rgba(49,130,246,.06)', clusterBorder:'#26314A',
-      edgeLabelBackground:'#0B0F19',
-    },
-    flowchart:{ curve:'basis', padding:14, htmlLabels:true },
-  });
-
-  // 폰트가 로드돼야 텍스트 크기를 정확히 잴 수 있다.
-  if (document.fonts && document.fonts.ready) { try { await document.fonts.ready; } catch(e){} }
-
-  // 핵심: reveal는 슬라이드에 transform/scale을 걸고 비활성 슬라이드를 숨겨,
-  // Mermaid가 크기를 못 재 좌표가 NaN이 된다. 측정 직전에 슬라이드 컨테이너와
-  // 각 슬라이드의 transform을 무력화하고 명시적 폭을 줘서 정상 측정 후 원복한다.
-  const slidesEl = document.querySelector('.reveal .slides');
-  const slidesSaved = slidesEl.getAttribute('style') || '';
-  slidesEl.style.cssText += ';transform:none !important;width:1180px !important;height:auto !important;';
-
-  const measureCss = ';display:block !important;visibility:hidden !important;' +
-    'position:relative !important;left:0 !important;top:0 !important;' +
-    'transform:none !important;width:1180px !important;height:auto !important;opacity:1 !important;';
-  const sections = [...document.querySelectorAll('.reveal .slides section')];
-  const saved = sections.map(s => s.getAttribute('style') || '');
-  sections.forEach(s => { s.style.cssText += measureCss; });
-
-  try {
-    await mermaid.run({ querySelector:'pre.mermaid', suppressErrors:true });
-  } catch (err) { console.error('mermaid run failed', err); }
-
-  sections.forEach((s, i) => s.setAttribute('style', saved[i]));
-  slidesEl.setAttribute('style', slidesSaved);
-  deck.layout();
 </script>
 </body>
 </html>
