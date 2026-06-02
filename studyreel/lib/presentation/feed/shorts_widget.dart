@@ -10,11 +10,16 @@ class ShortsWidget extends StatefulWidget {
   final bool isActive;
   final VoidCallback onBookmark;
 
+  /// 인앱 재생이 불가한 영상(임베드 차단·삭제·검색 불가)으로 판명되면 1회 호출.
+  /// 부모가 피드/캐시에서 제거해 다음 영상으로 자동으로 넘긴다.
+  final VoidCallback? onUnplayable;
+
   const ShortsWidget({
     super.key,
     required this.video,
     required this.isActive,
     required this.onBookmark,
+    this.onUnplayable,
   });
 
   @override
@@ -30,6 +35,19 @@ class _ShortsWidgetState extends State<ShortsWidget> {
 
   /// 사용자가 탭으로 일시정지한 상태 → 중앙에 재생 아이콘 표시
   bool _paused = false;
+
+  /// onUnplayable을 영상당 한 번만 호출하기 위한 가드
+  bool _reportedUnplayable = false;
+
+  /// 실제 재생(playing)에 도달했는지. 도달 전 워치독이 만료되면 재생 불가로 본다.
+  bool _started = false;
+
+  /// 활성 영상이 제한시간 내 재생되지 않으면 스킵을 트리거하는 워치독.
+  Timer? _watchdog;
+
+  /// 활성화 후 이 시간 안에 재생이 시작되지 않으면 재생 불가로 간주(에러 미발생
+  /// 무한 버퍼링/큐 상태까지 포함). 정상 영상은 보통 2~4초 내 재생된다.
+  static const _playStartTimeout = Duration(seconds: 6);
 
   @override
   void initState() {
@@ -57,14 +75,24 @@ class _ShortsWidgetState extends State<ShortsWidget> {
       ),
     );
     _sub = _controller.listen((value) {
-      // 진짜 임베드 차단(101/150)일 때만 로컬 폴백으로 전환한다.
-      // unknown 등 일시 오류로는 전환하지 않는다(전체 피드 캐스케이드 방지).
-      const embedBlocked = {
+      // 실제 재생에 도달하면 워치독 해제(정상 영상).
+      if (value.playerState == PlayerState.playing) {
+        _started = true;
+        _watchdog?.cancel();
+      }
+      // 인앱 재생이 불가한 확정적 에러(임베드 차단 101/150, 영상 없음 100,
+      // 검색 불가 105)면 폴백으로 전환하고, 활성 영상이면 부모에 통보해
+      // 피드/캐시에서 제거한다. html5Error(5)·unknown 등 일시 오류로는
+      // 전환하지 않는다(전체 피드 캐스케이드 방지).
+      const unplayable = {
         YoutubeError.notEmbeddable,
         YoutubeError.sameAsNotEmbeddable,
+        YoutubeError.videoNotFound,
+        YoutubeError.cannotFindVideo,
       };
-      if (embedBlocked.contains(value.error) && mounted && !_embedFailed) {
-        setState(() => _embedFailed = true);
+      if (unplayable.contains(value.error) && mounted) {
+        if (!_embedFailed) setState(() => _embedFailed = true);
+        _maybeReportUnplayable();
       }
       // 활성 페이지의 영상이 cue(준비·정지) 상태가 되면 즉시 자동재생.
       // 스와이프해 넘어온 다음 영상이 바로 재생됨(진짜 쇼츠처럼).
@@ -79,22 +107,53 @@ class _ShortsWidgetState extends State<ShortsWidget> {
         setState(() => _paused = paused);
       }
     });
+    if (widget.isActive) _armWatchdog();
+  }
+
+  /// 활성 영상이 제한시간 내 재생되지 않으면 재생 불가로 보고 스킵을 트리거한다.
+  void _armWatchdog() {
+    _watchdog?.cancel();
+    if (!widget.isActive || _started || _reportedUnplayable) return;
+    _watchdog = Timer(_playStartTimeout, () {
+      if (!mounted || !widget.isActive || _started || _reportedUnplayable) {
+        return;
+      }
+      if (!_embedFailed) setState(() => _embedFailed = true);
+      _reportedUnplayable = true;
+      widget.onUnplayable?.call();
+    });
   }
 
   @override
   void didUpdateWidget(covariant ShortsWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (!_embedFailed && widget.isActive != oldWidget.isActive) {
+    if (widget.isActive != oldWidget.isActive) {
       if (widget.isActive) {
-        _controller.playVideo();
+        // 비활성 상태에서 이미 재생 불가로 판명됐다면, 활성이 되는 순간 통보.
+        if (_embedFailed) {
+          _maybeReportUnplayable();
+        } else {
+          _controller.playVideo();
+          _armWatchdog(); // 활성화됐는데 재생 안 되면 스킵
+        }
       } else {
-        _controller.pauseVideo();
+        _watchdog?.cancel(); // 비활성 영상엔 워치독 불필요
+        if (!_embedFailed) _controller.pauseVideo();
       }
+    }
+  }
+
+  /// 활성 + 재생 불가 + 미통보일 때만 부모에 1회 통보한다.
+  void _maybeReportUnplayable() {
+    if (widget.isActive && _embedFailed && !_reportedUnplayable) {
+      _reportedUnplayable = true;
+      widget.onUnplayable?.call();
     }
   }
 
   @override
   void dispose() {
+    _watchdog?.cancel();
     _sub?.cancel();
     _controller.close();
     super.dispose();

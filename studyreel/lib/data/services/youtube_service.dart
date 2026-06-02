@@ -43,6 +43,31 @@ class YoutubeService {
     return true;
   }
 
+  /// 피드 노출 지역(한국).
+  static const _regionCode = 'KR';
+
+  /// 인앱(IFrame) 재생 가능성 판정 (순수 함수).
+  /// API가 embeddable=true라 해도 실제로는 막히는 케이스를 메타데이터로 거른다:
+  /// - 연령제한(ytAgeRestricted)은 서드파티 플레이어에서 재생 불가
+  /// - 한국이 차단(blocked)되거나 허용목록(allowed)에 한국이 없으면 재생 불가
+  /// - 업로드 상태가 processed가 아니면(rejected/failed 등) 재생 불가
+  static bool isPlayableInApp({
+    String? ytRating,
+    List<String>? regionBlocked,
+    List<String>? regionAllowed,
+    String? uploadStatus,
+  }) {
+    if (ytRating == 'ytAgeRestricted') return false;
+    if (regionBlocked != null && regionBlocked.contains(_regionCode)) {
+      return false;
+    }
+    if (regionAllowed != null && !regionAllowed.contains(_regionCode)) {
+      return false;
+    }
+    if (uploadStatus != null && uploadStatus != 'processed') return false;
+    return true;
+  }
+
   Future<List<YoutubeVideo>> searchShorts(List<String> topics) async {
     final suffix = _eduSuffixes[Random().nextInt(_eduSuffixes.length)];
     final videos = <YoutubeVideo>[];
@@ -124,15 +149,27 @@ class YoutubeService {
       }
       final body = jsonDecode(utf8.decode(response.bodyBytes));
       for (final item in body['items'] as List) {
-        final embeddable = item['status']?['embeddable'] == true;
+        final status = item['status'] as Map<String, dynamic>?;
+        final content = item['contentDetails'] as Map<String, dynamic>?;
+        final embeddable = status?['embeddable'] == true;
         final seconds =
-            _parseIsoDuration(item['contentDetails']?['duration'] as String?);
+            _parseIsoDuration(content?['duration'] as String?);
         final snippet = item['snippet'] as Map<String, dynamic>?;
         final title = snippet?['title'] as String? ?? '';
         final categoryId = snippet?['categoryId'] as String?;
         final educational = isEducational(title, categoryId: categoryId);
+        // 연령제한·지역차단·미처리 영상은 embeddable=true라도 실제 재생이 막힌다.
+        final region = content?['regionRestriction'] as Map<String, dynamic>?;
+        final playable = isPlayableInApp(
+          ytRating: (content?['contentRating']
+              as Map<String, dynamic>?)?['ytRating'] as String?,
+          regionBlocked: (region?['blocked'] as List?)?.cast<String>(),
+          regionAllowed: (region?['allowed'] as List?)?.cast<String>(),
+          uploadStatus: status?['uploadStatus'] as String?,
+        );
         if (embeddable &&
             educational &&
+            playable &&
             seconds > 0 &&
             seconds <= _maxShortsSeconds) {
           passed[item['id'] as String] = seconds;

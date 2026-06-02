@@ -52,6 +52,27 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
     }
   }
 
+  /// 인앱 재생이 불가한 영상을 피드와 캐시에서 제거한다.
+  /// 현재 보던 영상이면 그 자리에 다음 영상이 들어와 자동으로 넘어간다.
+  void _onUnplayable(String videoId) {
+    final list = [...ref.read(youtubeVideosProvider)];
+    final idx = list.indexWhere((v) => v.videoId == videoId);
+    if (idx == -1) return;
+    list.removeAt(idx);
+    ref.read(youtubeVideosProvider.notifier).state = list;
+    ref.read(youtubeRepositoryProvider).markUnplayable(videoId);
+    // 마지막 영상을 지운 경우 현재 인덱스를 끝으로 보정한다.
+    if (_currentIndex >= list.length && list.isNotEmpty) {
+      _currentIndex = list.length - 1;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _pageController.hasClients) {
+          _pageController.jumpToPage(_currentIndex);
+        }
+      });
+    }
+    if (mounted) setState(() {});
+  }
+
   @override
   Widget build(BuildContext context) {
     final topics = ref.watch(selectedTopicsProvider).toList()..sort();
@@ -165,6 +186,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
           key: ValueKey(video.videoId),
           video: video,
           isActive: index == _currentIndex,
+          onUnplayable: () => _onUnplayable(video.videoId),
           onBookmark: () {
             final updated = video.copyWith(isBookmarked: !video.isBookmarked);
             final newList = [...ref.read(youtubeVideosProvider)];

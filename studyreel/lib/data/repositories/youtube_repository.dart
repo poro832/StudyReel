@@ -71,6 +71,15 @@ class YoutubeRepository {
     await _videosRef.doc(videoId).update({'isBookmarked': value});
   }
 
+  /// 인앱 재생이 실패한 영상을 캐시에서 제거해 다음부터 피드에 안 뜨게 한다.
+  /// 단, 사용자가 북마크한 영상은 보존한다(의도적으로 저장한 것).
+  Future<void> markUnplayable(String videoId) async {
+    final doc = _videosRef.doc(videoId);
+    final snap = await doc.get();
+    if (snap.data()?['isBookmarked'] == true) return;
+    await doc.delete();
+  }
+
   /// 새 영상을 받아 캐시를 갱신한다. 해당 토픽의 기존 영상 중 북마크되지
   /// 않은 것은 삭제해, 오래된·부적합 영상이 다음 로드에 계속 섞이지 않게 한다.
   /// (북마크된 영상은 보존하고, 새 영상이 기존 북마크와 같으면 상태 유지)

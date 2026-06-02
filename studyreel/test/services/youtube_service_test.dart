@@ -45,4 +45,34 @@ void main() {
           isFalse);
     });
   });
+
+  group('YoutubeService.isPlayableInApp — 인앱 재생 가능 판정', () {
+    test('제약 없는 일반 영상은 재생 가능', () {
+      expect(YoutubeService.isPlayableInApp(uploadStatus: 'processed'), isTrue);
+      expect(YoutubeService.isPlayableInApp(), isTrue);
+    });
+
+    test('연령제한(ytAgeRestricted) 영상은 배제', () {
+      expect(YoutubeService.isPlayableInApp(ytRating: 'ytAgeRestricted'),
+          isFalse);
+    });
+
+    test('한국(KR)이 차단된 영상은 배제', () {
+      expect(YoutubeService.isPlayableInApp(regionBlocked: ['KR']), isFalse);
+      expect(
+          YoutubeService.isPlayableInApp(regionBlocked: ['US']), isTrue);
+    });
+
+    test('허용 지역 목록에 KR이 없으면 배제', () {
+      expect(YoutubeService.isPlayableInApp(regionAllowed: ['US', 'JP']),
+          isFalse);
+      expect(YoutubeService.isPlayableInApp(regionAllowed: ['KR', 'US']),
+          isTrue);
+    });
+
+    test('업로드 상태가 processed가 아니면 배제(rejected/failed 등)', () {
+      expect(YoutubeService.isPlayableInApp(uploadStatus: 'rejected'), isFalse);
+      expect(YoutubeService.isPlayableInApp(uploadStatus: 'failed'), isFalse);
+    });
+  });
 }

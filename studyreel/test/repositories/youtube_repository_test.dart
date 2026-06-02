@@ -148,5 +148,20 @@ void main() {
       await repo.saveAll([v1, v2]);
       expect(await repo.loadBookmarked(), isEmpty);
     });
+
+    test('markUnplayable — 재생 불가 영상은 캐시에서 제거', () async {
+      await repo.saveAll([v1, v2]);
+      await repo.markUnplayable('a1');
+      final loaded = await repo.loadCached();
+      expect(loaded.map((e) => e.videoId), ['b2']);
+    });
+
+    test('markUnplayable — 북마크된 영상은 보존', () async {
+      await repo.saveAll([v1, v2]);
+      await repo.toggleBookmark('a1', true);
+      await repo.markUnplayable('a1');
+      final loaded = await repo.loadCached();
+      expect(loaded.map((e) => e.videoId), containsAll(['a1', 'b2']));
+    });
   });
 }
