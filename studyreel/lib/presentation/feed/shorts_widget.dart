@@ -46,8 +46,9 @@ class _ShortsWidgetState extends State<ShortsWidget> {
   Timer? _watchdog;
 
   /// 활성화 후 이 시간 안에 재생이 시작되지 않으면 재생 불가로 간주(에러 미발생
-  /// 무한 버퍼링/큐 상태까지 포함). 정상 영상은 보통 2~4초 내 재생된다.
-  static const _playStartTimeout = Duration(seconds: 6);
+  /// 무한 버퍼링/큐 상태까지 포함). 짧을수록 스킵이 빠르지만 느린 네트워크에서
+  /// 정상 영상을 오스킵할 위험이 커진다.
+  static const _playStartTimeout = Duration(seconds: 3);
 
   @override
   void initState() {
