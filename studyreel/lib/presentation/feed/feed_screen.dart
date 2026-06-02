@@ -59,8 +59,10 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
     final videosAsync = ref.watch(youtubeFeedProvider(key));
 
     return Scaffold(
+      backgroundColor: Colors.black,
+      extendBodyBehindAppBar: true, // 영상이 AppBar 뒤까지 풀화면으로
       appBar: AppBar(
-        backgroundColor: kBgColor,
+        backgroundColor: Colors.transparent,
         elevation: 0,
         title: Row(
           children: [
@@ -68,12 +70,12 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
                 style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
-                    color: kTextColor)),
+                    color: Colors.white)),
             const SizedBox(width: 20),
             GestureDetector(
               onTap: () => context.push('/explore'),
               child: const Text('탐색',
-                  style: TextStyle(fontSize: 16, color: kTextGray)),
+                  style: TextStyle(fontSize: 16, color: Colors.white70)),
             ),
             const Spacer(),
             if (_refreshing)
@@ -83,13 +85,13 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
                   width: 20,
                   height: 20,
                   child: CircularProgressIndicator(
-                      strokeWidth: 2, color: kPrimaryColor),
+                      strokeWidth: 2, color: Colors.white),
                 ),
               )
             else
               IconButton(
                 onPressed: _refresh,
-                icon: const Icon(Icons.refresh, color: kTextColor),
+                icon: const Icon(Icons.refresh, color: Colors.white),
                 tooltip: '새로고침',
               ),
             GestureDetector(
@@ -127,7 +129,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
           if (stateVideos.isEmpty) {
             return const Center(
               child: Text('재생 가능한 영상이 없습니다.',
-                  style: TextStyle(color: kTextGray)),
+                  style: TextStyle(color: Colors.white70)),
             );
           }
           return _buildPager(stateVideos);
@@ -138,7 +140,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               const Text('영상을 불러오지 못했습니다.',
-                  style: TextStyle(color: kTextGray)),
+                  style: TextStyle(color: Colors.white70)),
               const SizedBox(height: 12),
               ElevatedButton(
                 onPressed: () => ref.invalidate(youtubeFeedProvider),

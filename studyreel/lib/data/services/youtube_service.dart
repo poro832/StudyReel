@@ -18,6 +18,31 @@ class YoutubeService {
   /// 골라 같은 토픽이라도 새로고침 때 다른 영상이 나오도록 한다.
   static const _eduSuffixes = ['강의', '개념 정리', '쉽게 설명', '핵심 요약', '기초'];
 
+  /// 제목에 들어가면 교육용으로 부적합하다고 보는 예능·바이럴 키워드.
+  /// 소문자로 비교하므로 영어는 소문자로 적는다(한글은 영향 없음).
+  static const _blockedTitleKeywords = [
+    '예능', '먹방', '몰카', '직캠', '브이로그', 'vlog', '챌린지', '레전드',
+    '꿀잼', '짤', '밈', '개그', '웃긴', '리액션', '커버댄스', '댄스커버',
+    '뮤비', 'mv', '뮤직비디오', '게임플레이', 'asmr', 'funny', 'game',
+  ];
+
+  /// 배제할 YouTube 영상 카테고리 ID.
+  /// 10=음악, 20=게임, 23=코미디, 24=엔터테인먼트.
+  static const _blockedCategoryIds = {'10', '20', '23', '24'};
+
+  /// 제목·카테고리 기반 교육 적합성 판정 (순수 함수).
+  /// 예능·바이럴·부적합 신호가 있으면 false. 제목 신호가 카테고리보다 우선한다.
+  static bool isEducational(String title, {String? categoryId}) {
+    final lower = title.toLowerCase();
+    for (final kw in _blockedTitleKeywords) {
+      if (lower.contains(kw)) return false;
+    }
+    if (categoryId != null && _blockedCategoryIds.contains(categoryId)) {
+      return false;
+    }
+    return true;
+  }
+
   Future<List<YoutubeVideo>> searchShorts(List<String> topics) async {
     final suffix = _eduSuffixes[Random().nextInt(_eduSuffixes.length)];
     final videos = <YoutubeVideo>[];
@@ -58,6 +83,8 @@ class YoutubeService {
       'maxResults': '$maxResults',
       'relevanceLanguage': 'ko',
       'regionCode': 'KR',
+      // 부적합·성인성 콘텐츠를 API 단계에서 1차 차단.
+      'safeSearch': 'strict',
       'key': _ytApiKey,
     });
 
@@ -70,9 +97,10 @@ class YoutubeService {
     return body['items'] as List;
   }
 
-  /// videos.list(part=status,contentDetails)로 한 번에 검증 (1 unit/회):
+  /// videos.list(part=snippet,status,contentDetails)로 한 번에 검증 (1 unit/회):
   /// - status.embeddable == true (인앱 임베드 가능, Error 152 회피)
   /// - contentDetails.duration <= 60초 (쇼츠 형태 유지)
+  /// - snippet.categoryId·title 기반 교육 적합성 (isEducational, 예능 배제)
   /// id는 최대 50개씩 끊어 호출한다.
   Future<List<YoutubeVideo>> _filterPlayableShorts(
       List<YoutubeVideo> videos) async {
@@ -84,7 +112,7 @@ class YoutubeService {
       final chunk = videos.sublist(i, (i + 50).clamp(0, videos.length));
       final ids = chunk.map((v) => v.videoId).join(',');
       final uri = Uri.parse(_videosEndpoint).replace(queryParameters: {
-        'part': 'status,contentDetails',
+        'part': 'snippet,status,contentDetails',
         'id': ids,
         'key': _ytApiKey,
       });
@@ -99,7 +127,14 @@ class YoutubeService {
         final embeddable = item['status']?['embeddable'] == true;
         final seconds =
             _parseIsoDuration(item['contentDetails']?['duration'] as String?);
-        if (embeddable && seconds > 0 && seconds <= _maxShortsSeconds) {
+        final snippet = item['snippet'] as Map<String, dynamic>?;
+        final title = snippet?['title'] as String? ?? '';
+        final categoryId = snippet?['categoryId'] as String?;
+        final educational = isEducational(title, categoryId: categoryId);
+        if (embeddable &&
+            educational &&
+            seconds > 0 &&
+            seconds <= _maxShortsSeconds) {
           passed[item['id'] as String] = seconds;
         }
       }

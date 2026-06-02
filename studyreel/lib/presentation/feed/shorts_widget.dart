@@ -28,6 +28,9 @@ class _ShortsWidgetState extends State<ShortsWidget> {
   /// 인앱 임베드가 실패하면 true → 썸네일 + 외부 실행 폴백으로 전환
   bool _embedFailed = false;
 
+  /// 사용자가 탭으로 일시정지한 상태 → 중앙에 재생 아이콘 표시
+  bool _paused = false;
+
   @override
   void initState() {
     super.initState();
@@ -35,7 +38,8 @@ class _ShortsWidgetState extends State<ShortsWidget> {
       videoId: widget.video.videoId,
       autoPlay: widget.isActive,
       params: const YoutubePlayerParams(
-        showControls: true,
+        // 풀화면 몰입을 위해 네이티브 컨트롤은 숨기고 탭으로 재생/정지.
+        showControls: false,
         showFullscreenButton: false,
         strictRelatedVideos: true,
         // 소리 켠 자동재생. youtube-nocookie 호스트 + 패키지가 설정하는
@@ -43,9 +47,9 @@ class _ShortsWidgetState extends State<ShortsWidget> {
         // 무음 없이 소리까지 정상 재생됨(Z Fold7 검증).
         mute: false,
         loop: true,
-        // [실험] error 152-4 회피: youtube-nocookie.com은 유효한 임베드 호스트라
-        // 플레이어가 정상 로드되면서 youtube.com과 다른 도메인이라 152 정책을
-        // 우회할 수 있음. (이 패키지는 origin을 host로도 써서 유효 호스트 필수)
+        // error 152-4 회피: youtube-nocookie는 유효한 임베드 호스트라
+        // 플레이어가 정상 로드되면서 youtube.com과 다른 도메인이라 152를
+        // 우회한다. (이 패키지는 origin을 host로도 써서 유효 호스트 필수)
         origin: 'https://www.youtube-nocookie.com',
         userAgent:
             'Mozilla/5.0 (Linux; Android 14; SM-F966N) AppleWebKit/537.36 '
@@ -63,13 +67,16 @@ class _ShortsWidgetState extends State<ShortsWidget> {
         setState(() => _embedFailed = true);
       }
       // 활성 페이지의 영상이 cue(준비·정지) 상태가 되면 즉시 자동재생.
-      // off-screen에서 미리 cue된 다음 영상도 스와이프해 활성화되는 순간
-      // 바로 재생됨(진짜 쇼츠처럼). 사용자가 일시정지하면 paused 상태라
-      // 여기에 안 걸려 다시 재생되지 않는다.
+      // 스와이프해 넘어온 다음 영상이 바로 재생됨(진짜 쇼츠처럼).
       if (widget.isActive &&
           !_embedFailed &&
           value.playerState == PlayerState.cued) {
         _controller.playVideo();
+      }
+      // 중앙 재생 아이콘 표시용(명시적 일시정지 상태만 반영).
+      final paused = value.playerState == PlayerState.paused;
+      if (paused != _paused && mounted) {
+        setState(() => _paused = paused);
       }
     });
   }
@@ -93,29 +100,216 @@ class _ShortsWidgetState extends State<ShortsWidget> {
     super.dispose();
   }
 
+  void _togglePlay() {
+    if (_paused) {
+      _controller.playVideo();
+    } else {
+      _controller.pauseVideo();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-      child: Column(
+    final size = MediaQuery.of(context).size;
+    // 플레이어를 화면 비율로 강제해 풀블리드(9:16)로 채운다.
+    // (YoutubePlayer는 내부적으로 AspectRatio로 감싸므로 화면 비율을 넘김)
+    final screenAspect = size.width / size.height;
+
+    return ColoredBox(
+      color: Colors.black,
+      child: Stack(
+        fit: StackFit.expand,
         children: [
-          // 영상: 둥근 흰 프레임 카드 (소프트 섀도우)
-          Expanded(
-            child: Container(
-              width: double.infinity,
-              decoration: BoxDecoration(
-                color: kSurfaceColor,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: kCardShadow,
+          // 1) 영상 (전체 화면) 또는 폴백
+          if (_embedFailed)
+            _buildFallback()
+          else
+            Center(
+              child: YoutubePlayer(
+                controller: _controller,
+                aspectRatio: screenAspect,
+                backgroundColor: Colors.black,
+                enableFullScreenOnVerticalDrag: false, // PageView 스와이프 보존
               ),
-              clipBehavior: Clip.antiAlias,
-              child: _embedFailed
-                  ? _buildFallback()
-                  : YoutubePlayer(controller: _controller),
+            ),
+
+          // 2) 탭으로 재생/정지 (세로 스와이프는 PageView로 통과)
+          if (!_embedFailed)
+            GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: _togglePlay,
+            ),
+
+          // 3) 일시정지 시 중앙 재생 아이콘
+          if (_paused && !_embedFailed)
+            const IgnorePointer(
+              child: Center(
+                child: Icon(Icons.play_arrow_rounded,
+                    color: Colors.white70, size: 84),
+              ),
+            ),
+
+          // 4) 상단 스크림 — 윗부분은 불투명 블랙으로 YouTube 플레이어가 영상
+          //    위에 띄우는 제목 바를 가린다(상태바·AppBar와 겹쳐 잘려 보이던 문제).
+          //    아래로 갈수록 투명해져 영상이 자연스럽게 드러난다.
+          const IgnorePointer(
+            child: Align(
+              alignment: Alignment.topCenter,
+              child: SizedBox(
+                height: 200,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Color(0xFF000000),
+                        Color(0xFF000000),
+                        Color(0x00000000),
+                      ],
+                      stops: [0.0, 0.58, 1.0],
+                    ),
+                  ),
+                  child: SizedBox.expand(),
+                ),
+              ),
             ),
           ),
-          const SizedBox(height: 12),
-          _buildInfoCard(),
+
+          // 5) 하단 스크림 (정보/액션 가독성)
+          const IgnorePointer(
+            child: Align(
+              alignment: Alignment.bottomCenter,
+              child: SizedBox(
+                height: 340,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.bottomCenter,
+                      end: Alignment.topCenter,
+                      colors: [Color(0xB3000000), Color(0x00000000)],
+                    ),
+                  ),
+                  child: SizedBox.expand(),
+                ),
+              ),
+            ),
+          ),
+
+          // 6) 하단 정보(좌) + 액션(우)
+          Positioned(
+            left: 16,
+            right: 12,
+            bottom: 0,
+            child: SafeArea(
+              top: false,
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Expanded(child: _buildInfo()),
+                    const SizedBox(width: 12),
+                    _buildActions(),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfo() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+          decoration: BoxDecoration(
+            color: kPrimaryColor,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Text(widget.video.topic,
+              style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700)),
+        ),
+        const SizedBox(height: 10),
+        Text(
+          widget.video.title,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 15,
+            fontWeight: FontWeight.w700,
+            height: 1.3,
+            shadows: [Shadow(color: Colors.black54, blurRadius: 4)],
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          widget.video.channelTitle,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(
+            color: Colors.white70,
+            fontSize: 12,
+            shadows: [Shadow(color: Colors.black54, blurRadius: 4)],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildActions() {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _actionButton(
+          icon: widget.video.isBookmarked
+              ? Icons.bookmark
+              : Icons.bookmark_border,
+          label: widget.video.isBookmarked ? '저장됨' : '저장',
+          color: widget.video.isBookmarked ? kPrimaryColor : Colors.white,
+          onTap: widget.onBookmark,
+        ),
+        const SizedBox(height: 22),
+        _actionButton(
+          icon: Icons.open_in_new_rounded,
+          label: 'YouTube',
+          color: Colors.white,
+          onTap: () => launchYoutube(widget.video.videoId),
+        ),
+      ],
+    );
+  }
+
+  Widget _actionButton({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: color, size: 34),
+          const SizedBox(height: 4),
+          Text(label,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                shadows: [Shadow(color: Colors.black54, blurRadius: 4)],
+              )),
         ],
       ),
     );
@@ -132,9 +326,9 @@ class _ShortsWidgetState extends State<ShortsWidget> {
             widget.video.thumbnailUrl,
             fit: BoxFit.cover,
             errorBuilder: (context, error, stack) =>
-                Container(color: kBgColor),
+                const ColoredBox(color: Colors.black),
           ),
-          Container(color: Colors.black.withValues(alpha: 0.35)),
+          const ColoredBox(color: Color(0x59000000)),
           Center(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -160,97 +354,6 @@ class _ShortsWidgetState extends State<ShortsWidget> {
                     style: TextStyle(color: Colors.white70, fontSize: 12)),
               ],
             ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildInfoCard() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: kSurfaceColor,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: kCardShadow,
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: kPrimarySoft,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(widget.video.topic,
-                      style: const TextStyle(
-                          color: kPrimaryColor,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700)),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  widget.video.title,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                      color: kTextColor,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                      height: 1.3),
-                ),
-                const SizedBox(height: 4),
-                Text(widget.video.channelTitle,
-                    style: const TextStyle(color: kTextGray, fontSize: 12)),
-              ],
-            ),
-          ),
-          const SizedBox(width: 12),
-          Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              GestureDetector(
-                onTap: widget.onBookmark,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      widget.video.isBookmarked
-                          ? Icons.bookmark
-                          : Icons.bookmark_border,
-                      color: widget.video.isBookmarked
-                          ? kPrimaryColor
-                          : kTextGray,
-                      size: 30,
-                    ),
-                    const SizedBox(height: 2),
-                    Text(widget.video.isBookmarked ? '저장됨' : '저장',
-                        style: const TextStyle(color: kTextGray, fontSize: 11)),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 12),
-              GestureDetector(
-                onTap: () => launchYoutube(widget.video.videoId),
-                child: const Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.open_in_new, color: kTextGray, size: 26),
-                    SizedBox(height: 2),
-                    Text('앱에서',
-                        style: TextStyle(color: kTextGray, fontSize: 11)),
-                  ],
-                ),
-              ),
-            ],
           ),
         ],
       ),
