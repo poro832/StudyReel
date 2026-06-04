@@ -7,6 +7,17 @@
 
 ---
 
+## ⬇️ 다운로드 · 소개
+
+- **앱 소개 페이지** — https://poro832.github.io/studyreel-deck/app/
+- **APK 다운로드 (Android)** — https://poro832.github.io/studyreel-deck/app/studyreel.apk
+- **발표 자료** — https://poro832.github.io/studyreel-deck/ · **진행 현황(WBS)** — https://poro832.github.io/studyreel-deck/wbs.html
+
+> Android 7.0+ · 약 54MB · 설치 시 "출처를 알 수 없는 앱" 허용 후 Google 계정으로 로그인.
+> 학습·포트폴리오용 데모입니다(iOS 미지원).
+
+---
+
 ## 한눈에
 
 - **무엇** — 토픽을 고르면 교육용 YouTube Shorts가 세로 피드로 흐르고, **앱 안에서 소리와 함께 자동재생**됩니다. 틱톡/릴스의 소비 경험을 *학습 콘텐츠*로 바꾼 앱.
