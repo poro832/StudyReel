@@ -20,6 +20,7 @@ class StudyReelApp extends ConsumerWidget {
 
     return MaterialApp.router(
       title: 'StudyReel',
+      debugShowCheckedModeBanner: false,
       theme: appTheme,
       routerConfig: router,
     );
