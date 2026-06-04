@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "907984054023-d95k5jflsi7tqgd6hakj0btggj0q6bgj.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.studyreel.studyreel",
+            "certificate_hash": "091b60ebec556b6715ac7221c54db6448f725760"
+          }
+        },
+        {
           "client_id": "907984054023-mu1j7b8vqcomtg1jhkng73d921eoj8u8.apps.googleusercontent.com",
           "client_type": 3
         }

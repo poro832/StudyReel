@@ -33,5 +33,13 @@ void main() {
       notifier.toggle('C');
       expect(container.read(selectedTopicsProvider.notifier).isValid, isTrue);
     });
+
+    test('setAll: 저장된 토픽으로 전체 시드(기존 선택 대체)', () {
+      final notifier = container.read(selectedTopicsProvider.notifier);
+      notifier.toggle('수학');
+      notifier.setAll(['컴퓨터과학', '영어', '과학']);
+      expect(container.read(selectedTopicsProvider),
+          {'컴퓨터과학', '영어', '과학'});
+    });
   });
 }

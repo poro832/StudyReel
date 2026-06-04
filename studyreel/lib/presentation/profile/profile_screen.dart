@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../core/theme.dart';
+import '../../domain/auth_provider.dart';
 import '../../domain/streak_provider.dart';
 import '../../domain/youtube_provider.dart';
 import '../common/video_list_tile.dart';
@@ -12,6 +14,8 @@ class ProfileScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final streakAsync = ref.watch(streakProvider);
     final bookmarksAsync = ref.watch(bookmarkedVideosProvider);
+    final historyAsync = ref.watch(watchHistoryProvider);
+    final user = ref.watch(authStateProvider).valueOrNull;
 
     return Scaffold(
       appBar: AppBar(
@@ -26,7 +30,19 @@ class ProfileScreen extends ConsumerWidget {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
         children: [
+          _AccountCard(
+            name: user?.displayName,
+            email: user?.email,
+            photoUrl: user?.photoURL,
+            onSignOut: () async {
+              await ref.read(authRepositoryProvider).signOut();
+              if (context.mounted) context.go('/login');
+            },
+          ),
+          const SizedBox(height: 16),
           _StreakCard(streakAsync: streakAsync),
+          const SizedBox(height: 16),
+          _TopicEditTile(onTap: () => context.push('/topics')),
           const SizedBox(height: 24),
           const Text('저장한 영상',
               style: TextStyle(
@@ -65,6 +81,153 @@ class ProfileScreen extends ConsumerWidget {
                     style: TextStyle(color: kTextGray)),
               ),
             ),
+          ),
+          const SizedBox(height: 24),
+          const Text('최근 본 영상',
+              style: TextStyle(
+                  color: kTextColor,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700)),
+          const SizedBox(height: 12),
+          historyAsync.when(
+            data: (videos) {
+              if (videos.isEmpty) {
+                return const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 40),
+                  child: Center(
+                    child: Text('아직 본 영상이 없습니다.',
+                        style: TextStyle(color: kTextGray)),
+                  ),
+                );
+              }
+              return Column(
+                children: [
+                  for (final v in videos) ...[
+                    VideoListTile(video: v),
+                    const SizedBox(height: 12),
+                  ],
+                ],
+              );
+            },
+            loading: () => const Padding(
+              padding: EdgeInsets.symmetric(vertical: 40),
+              child: Center(child: CircularProgressIndicator()),
+            ),
+            error: (e, _) => const Padding(
+              padding: EdgeInsets.symmetric(vertical: 40),
+              child: Center(
+                child: Text('시청 기록을 불러오지 못했습니다.',
+                    style: TextStyle(color: kTextGray)),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TopicEditTile extends StatelessWidget {
+  final VoidCallback onTap;
+  const _TopicEditTile({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(18),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: kSurfaceColor,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: kBorderColor),
+          boxShadow: kCardShadow,
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.tune, color: kPrimaryColor),
+            const SizedBox(width: 14),
+            const Expanded(
+              child: Text('관심 토픽 변경',
+                  style: TextStyle(
+                      color: kTextColor,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700)),
+            ),
+            const Icon(Icons.chevron_right, color: kTextGray),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _AccountCard extends StatelessWidget {
+  final String? name;
+  final String? email;
+  final String? photoUrl;
+  final Future<void> Function() onSignOut;
+
+  const _AccountCard({
+    required this.name,
+    required this.email,
+    required this.photoUrl,
+    required this.onSignOut,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: kSurfaceColor,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: kBorderColor),
+        boxShadow: kCardShadow,
+      ),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 24,
+            backgroundColor: kPrimaryColor,
+            foregroundImage: photoUrl == null ? null : NetworkImage(photoUrl!),
+            child: photoUrl == null
+                ? const Icon(Icons.person, color: Colors.white)
+                : null,
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  name?.isNotEmpty == true ? name! : 'StudyReel 사용자',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: kTextColor,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  email?.isNotEmpty == true ? email! : 'Google 계정 로그인',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(color: kTextGray, fontSize: 13),
+                ),
+              ],
+            ),
+          ),
+          IconButton(
+            onPressed: onSignOut,
+            icon: const Icon(Icons.logout),
+            tooltip: '로그아웃',
+            color: kTextGray,
           ),
         ],
       ),

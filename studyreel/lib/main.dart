@@ -11,15 +11,17 @@ void main() async {
   runApp(const ProviderScope(child: StudyReelApp()));
 }
 
-class StudyReelApp extends StatelessWidget {
+class StudyReelApp extends ConsumerWidget {
   const StudyReelApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final router = ref.watch(appRouterProvider);
+
     return MaterialApp.router(
       title: 'StudyReel',
       theme: appTheme,
-      routerConfig: appRouter,
+      routerConfig: router,
     );
   }
 }

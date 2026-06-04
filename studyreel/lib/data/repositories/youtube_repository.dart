@@ -21,6 +21,9 @@ class YoutubeRepository {
   CollectionReference<Map<String, dynamic>> get _videosRef =>
       _firestore.collection('users').doc(_uid).collection('youtube_videos');
 
+  CollectionReference<Map<String, dynamic>> get _watchHistoryRef =>
+      _firestore.collection('users').doc(_uid).collection('watch_history');
+
   /// 캐시된 영상을 읽는다. [topics]가 주어지면 해당 토픽의 영상만 반환한다
   /// (새 카테고리를 고르면 캐시에 없어 재조회가 유도됨). 북마크 조회처럼
   /// 토픽 무관하게 전부 필요할 때는 [topics]를 생략한다.
@@ -115,6 +118,49 @@ class YoutubeRepository {
     await batch.commit();
     return videos;
   }
+
+  /// 영상이 실제 재생된 시점에 시청 기록으로 저장한다.
+  /// 재시청하면 watchedAt이 갱신돼 "최근 본 영상" 정렬에서 앞으로 온다.
+  Future<void> recordWatched(YoutubeVideo v, {DateTime? at}) async {
+    await _watchHistoryRef.doc(v.videoId).set({
+      'videoId': v.videoId,
+      'title': v.title,
+      'channelTitle': v.channelTitle,
+      'topic': v.topic,
+      'thumbnailUrl': v.thumbnailUrl,
+      'watchedAt': (at ?? DateTime.now()).millisecondsSinceEpoch,
+    });
+  }
+
+  /// 최근 본 영상을 watchedAt 내림차순으로 반환 (프로필 표시용).
+  Future<List<YoutubeVideo>> loadWatchHistory({int limit = 30}) async {
+    final snap = await _watchHistoryRef
+        .orderBy('watchedAt', descending: true)
+        .limit(limit)
+        .get();
+    return snap.docs.map((d) {
+      final data = d.data();
+      return YoutubeVideo(
+        videoId: data['videoId'] as String,
+        title: data['title'] as String,
+        channelTitle: data['channelTitle'] as String,
+        topic: data['topic'] as String,
+        thumbnailUrl: data['thumbnailUrl'] as String,
+      );
+    }).toList();
+  }
+
+  /// 시청한 영상 id 집합 (피드 중복 제거용).
+  Future<Set<String>> loadWatchedIds() async {
+    final snap = await _watchHistoryRef.get();
+    return snap.docs.map((d) => d.id).toSet();
+  }
+
+  /// 무한 스크롤용: 한 토픽의 다음 페이지를 받아온다(서비스 위임).
+  Future<({List<YoutubeVideo> videos, String? nextPageToken, String suffix})>
+      searchTopicPage(String topic, {String? pageToken, String? suffix}) =>
+          _service.searchTopicPage(topic,
+              pageToken: pageToken, suffix: suffix);
 
   /// 키워드 검색은 캐싱하지 않고 매번 새로 조회 (임의 쿼리로 Firestore 오염 방지)
   Future<List<YoutubeVideo>> search(String query) =>

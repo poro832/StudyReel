@@ -14,12 +14,16 @@ class ShortsWidget extends StatefulWidget {
   /// 부모가 피드/캐시에서 제거해 다음 영상으로 자동으로 넘긴다.
   final VoidCallback? onUnplayable;
 
+  /// 영상이 실제 재생(playing)에 도달하면 1회 호출 → 시청 기록에 저장.
+  final VoidCallback? onWatched;
+
   const ShortsWidget({
     super.key,
     required this.video,
     required this.isActive,
     required this.onBookmark,
     this.onUnplayable,
+    this.onWatched,
   });
 
   @override
@@ -41,6 +45,9 @@ class _ShortsWidgetState extends State<ShortsWidget> {
 
   /// 실제 재생(playing)에 도달했는지. 도달 전 워치독이 만료되면 재생 불가로 본다.
   bool _started = false;
+
+  /// onWatched를 영상당 한 번만 호출하기 위한 가드
+  bool _reportedWatched = false;
 
   /// 활성 영상이 제한시간 내 재생되지 않으면 스킵을 트리거하는 워치독.
   Timer? _watchdog;
@@ -76,10 +83,14 @@ class _ShortsWidgetState extends State<ShortsWidget> {
       ),
     );
     _sub = _controller.listen((value) {
-      // 실제 재생에 도달하면 워치독 해제(정상 영상).
+      // 실제 재생에 도달하면 워치독 해제(정상 영상) + 시청 기록 1회 보고.
       if (value.playerState == PlayerState.playing) {
         _started = true;
         _watchdog?.cancel();
+        if (!_reportedWatched) {
+          _reportedWatched = true;
+          widget.onWatched?.call();
+        }
       }
       // 인앱 재생이 불가한 확정적 에러(임베드 차단 101/150, 영상 없음 100,
       // 검색 불가 105)면 폴백으로 전환하고, 활성 영상이면 부모에 통보해

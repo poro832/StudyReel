@@ -72,7 +72,7 @@ class YoutubeService {
     final suffix = _eduSuffixes[Random().nextInt(_eduSuffixes.length)];
     final videos = <YoutubeVideo>[];
     for (final topic in topics) {
-      final items = await _search(
+      final body = await _search(
         query: '$topic $suffix',
         maxResults: 15,
         videoDuration: 'short', // 4분 미만 (정밀 길이 필터는 아래에서)
@@ -80,24 +80,51 @@ class YoutubeService {
         // relevance(기본)로 학습 쿼리와의 관련성을 우선한다.
         order: 'relevance',
       );
-      videos.addAll(_parseItems(items, topic));
+      videos.addAll(_parseItems(body['items'] as List, topic));
     }
     final playable = await _filterPlayableShorts(videos);
     playable.shuffle(); // 토픽이 섞이도록
     return playable;
   }
 
-  /// 키워드 자유 검색 (탐색 화면용). 탐색은 외부 실행이라 필터 미적용.
-  Future<List<YoutubeVideo>> searchByKeyword(String query) async {
-    final items = await _search(query: query, maxResults: 15);
-    return _parseItems(items, query);
+  /// 무한 스크롤용: 한 토픽의 한 페이지를 받아 필터링한 영상과 다음 페이지
+  /// 토큰을 함께 반환한다. [pageToken]이 없으면 1페이지부터 시작한다.
+  /// [suffix]를 주면 같은 쿼리로 연속 페이지를 받을 수 있다(없으면 무작위).
+  Future<({List<YoutubeVideo> videos, String? nextPageToken, String suffix})>
+      searchTopicPage(
+    String topic, {
+    String? pageToken,
+    String? suffix,
+  }) async {
+    final s = suffix ?? _eduSuffixes[Random().nextInt(_eduSuffixes.length)];
+    final body = await _search(
+      query: '$topic $s',
+      maxResults: 15,
+      videoDuration: 'short',
+      order: 'relevance',
+      pageToken: pageToken,
+    );
+    final parsed = _parseItems(body['items'] as List, topic);
+    final playable = await _filterPlayableShorts(parsed);
+    return (
+      videos: playable,
+      nextPageToken: body['nextPageToken'] as String?,
+      suffix: s,
+    );
   }
 
-  Future<List<dynamic>> _search({
+  /// 키워드 자유 검색 (탐색 화면용). 탐색은 외부 실행이라 필터 미적용.
+  Future<List<YoutubeVideo>> searchByKeyword(String query) async {
+    final body = await _search(query: query, maxResults: 15);
+    return _parseItems(body['items'] as List, query);
+  }
+
+  Future<Map<String, dynamic>> _search({
     required String query,
     required int maxResults,
     String? videoDuration,
     String? order,
+    String? pageToken,
   }) async {
     final uri = Uri.parse(_searchEndpoint).replace(queryParameters: {
       'part': 'snippet',
@@ -105,6 +132,7 @@ class YoutubeService {
       'type': 'video',
       if (videoDuration != null) 'videoDuration': videoDuration,
       if (order != null) 'order': order,
+      if (pageToken != null) 'pageToken': pageToken,
       'maxResults': '$maxResults',
       'relevanceLanguage': 'ko',
       'regionCode': 'KR',
@@ -118,8 +146,7 @@ class YoutubeService {
       throw Exception(
           'YouTube API 오류: ${response.statusCode}\n${response.body}');
     }
-    final body = jsonDecode(utf8.decode(response.bodyBytes));
-    return body['items'] as List;
+    return jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
   }
 
   /// videos.list(part=snippet,status,contentDetails)로 한 번에 검증 (1 unit/회):

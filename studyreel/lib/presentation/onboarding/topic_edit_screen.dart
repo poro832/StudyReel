@@ -3,46 +3,82 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/theme.dart';
 import '../../domain/topic_provider.dart';
+import '../../domain/youtube_provider.dart';
 
-class OnboardingScreen extends ConsumerWidget {
-  const OnboardingScreen({super.key});
+/// 프로필에서 진입하는 관심 토픽 변경 화면.
+/// 현재 토픽을 로컬 초안으로 편집하고, 저장 시에만 영속화·피드 반영한다.
+class TopicEditScreen extends ConsumerStatefulWidget {
+  const TopicEditScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final selected = ref.watch(selectedTopicsProvider);
-    final notifier = ref.read(selectedTopicsProvider.notifier);
+  ConsumerState<TopicEditScreen> createState() => _TopicEditScreenState();
+}
 
+class _TopicEditScreenState extends ConsumerState<TopicEditScreen> {
+  late Set<String> _draft;
+  bool _saving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _draft = {...ref.read(selectedTopicsProvider)};
+  }
+
+  bool get _isValid => _draft.length >= 3;
+
+  Future<void> _save() async {
+    if (!_isValid || _saving) return;
+    setState(() => _saving = true);
+    final topics = _draft.toList();
+    try {
+      await ref.read(topicRepositoryProvider).saveTopics(topics);
+      ref.read(selectedTopicsProvider.notifier).setAll(topics);
+      // 토픽이 바뀌었으니 피드를 새 토픽으로 다시 받도록 무효화한다.
+      ref.invalidate(youtubeFeedProvider);
+      if (!mounted) return;
+      context.go('/feed');
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _saving = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('토픽 저장에 실패했어요. 다시 시도해 주세요.')),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        backgroundColor: kBgColor,
+        elevation: 0,
+        title: const Text('관심 토픽 변경',
+            style: TextStyle(
+                fontSize: 18, fontWeight: FontWeight.w700, color: kTextColor)),
+      ),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const SizedBox(height: 48),
-              Text('StudyReel',
+              const SizedBox(height: 16),
+              const Text('관심 있는 분야를\n3개 이상 골라주세요.',
                   style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                      color: kPrimaryColor)),
-              const SizedBox(height: 32),
-              const Text('어떤 걸\n배우고 싶나요?',
-                  style: TextStyle(
-                      fontSize: 32,
+                      fontSize: 26,
                       fontWeight: FontWeight.bold,
                       height: 1.3,
                       color: kTextColor)),
-              const SizedBox(height: 12),
-              const Text('3개 이상 선택해 주세요.',
-                  style: TextStyle(color: kTextGray)),
-              const SizedBox(height: 32),
+              const SizedBox(height: 24),
               Wrap(
                 spacing: 12,
                 runSpacing: 12,
                 children: kAvailableTopics.map((topic) {
-                  final isSelected = selected.contains(topic);
+                  final isSelected = _draft.contains(topic);
                   return GestureDetector(
-                    onTap: () => notifier.toggle(topic),
+                    onTap: () => setState(() {
+                      isSelected ? _draft.remove(topic) : _draft.add(topic);
+                    }),
                     child: Container(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 20, vertical: 12),
@@ -66,7 +102,7 @@ class OnboardingScreen extends ConsumerWidget {
                 }).toList(),
               ),
               const Spacer(),
-              Text('${selected.length}개 선택됨',
+              Text('${_draft.length}개 선택됨',
                   style: const TextStyle(color: kTextGray),
                   textAlign: TextAlign.center),
               const SizedBox(height: 12),
@@ -74,28 +110,21 @@ class OnboardingScreen extends ConsumerWidget {
                 width: double.infinity,
                 height: 56,
                 child: ElevatedButton(
-                  onPressed: notifier.isValid
-                      ? () async {
-                          await ref
-                              .read(topicRepositoryProvider)
-                              .saveTopics(selected.toList());
-                          if (context.mounted) context.go('/feed');
-                        }
-                      : null,
+                  onPressed: _isValid && !_saving ? _save : null,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: kPrimaryColor,
                     disabledBackgroundColor: kBorderColor,
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16)),
                   ),
-                  child: const Text('시작하기 →',
-                      style: TextStyle(
+                  child: Text(_saving ? '저장 중...' : '저장',
+                      style: const TextStyle(
                           color: Colors.white,
                           fontSize: 16,
                           fontWeight: FontWeight.w600)),
                 ),
               ),
-              const SizedBox(height: 32),
+              const SizedBox(height: 24),
             ],
           ),
         ),

@@ -163,5 +163,34 @@ void main() {
       final loaded = await repo.loadCached();
       expect(loaded.map((e) => e.videoId), containsAll(['a1', 'b2']));
     });
+
+    test('recordWatched → loadWatchedIds 에 포함', () async {
+      await repo.recordWatched(v1);
+      final ids = await repo.loadWatchedIds();
+      expect(ids, contains('a1'));
+    });
+
+    test('loadWatchHistory — 최근 본 순(watchedAt desc)으로 반환', () async {
+      await repo.recordWatched(v1, at: DateTime(2026, 6, 1));
+      await repo.recordWatched(v2, at: DateTime(2026, 6, 3));
+      final history = await repo.loadWatchHistory();
+      expect(history.map((e) => e.videoId), ['b2', 'a1']); // 최신 먼저
+    });
+
+    test('recordWatched — 재시청 시 watchedAt 갱신(맨 앞으로)', () async {
+      await repo.recordWatched(v1, at: DateTime(2026, 6, 1));
+      await repo.recordWatched(v2, at: DateTime(2026, 6, 2));
+      await repo.recordWatched(v1, at: DateTime(2026, 6, 5)); // a1 재시청
+      final history = await repo.loadWatchHistory();
+      expect(history.map((e) => e.videoId), ['a1', 'b2']);
+    });
+
+    test('loadWatchHistory — limit 적용', () async {
+      await repo.recordWatched(v1, at: DateTime(2026, 6, 1));
+      await repo.recordWatched(v2, at: DateTime(2026, 6, 2));
+      final history = await repo.loadWatchHistory(limit: 1);
+      expect(history.length, 1);
+      expect(history.first.videoId, 'b2');
+    });
   });
 }

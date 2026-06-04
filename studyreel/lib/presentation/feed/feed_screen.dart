@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/theme.dart';
 import '../../data/models/youtube_video.dart';
+import '../../domain/feed_dedup.dart';
 import '../../domain/topic_provider.dart';
 import '../../domain/youtube_provider.dart';
 import 'shorts_widget.dart';
@@ -23,6 +24,72 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
   /// 키가 달라져 새 목록으로 다시 시드한다.
   String? _seededKey;
 
+  // ── 무한 스크롤(page token) 상태 (화면 세션 범위) ──
+  /// 토픽 → 다음 페이지 토큰 (키 없으면 아직 더 받기 시작 안 함)
+  final Map<String, String?> _nextToken = {};
+
+  /// 토픽 → 연속 페이지에 쓸 동일 접미사 (첫 페이지에서 받은 값 재사용)
+  final Map<String, String> _suffix = {};
+
+  /// 토큰이 소진된(더 받을 페이지 없는) 토픽
+  final Set<String> _exhausted = {};
+  bool _loadingMore = false;
+
+  /// 시청한 영상 id (피드 중복 제거용)
+  Set<String> _watchedIds = {};
+
+  /// 시청 기록에 1회 저장한다. 메모리 집합도 갱신해 다음 페이지에서 제외된다.
+  void _onWatched(YoutubeVideo v) {
+    _watchedIds.add(v.videoId);
+    ref.read(youtubeRepositoryProvider).recordWatched(v);
+  }
+
+  Future<void> _loadWatchedIds() async {
+    final ids = await ref.read(youtubeRepositoryProvider).loadWatchedIds();
+    if (mounted) _watchedIds = ids;
+  }
+
+  /// 토픽 변경/새로고침 시 무한 스크롤 커서를 초기화한다.
+  void _resetPagination() {
+    _nextToken.clear();
+    _suffix.clear();
+    _exhausted.clear();
+    _loadingMore = false;
+  }
+
+  /// 피드 끝에 가까워지면 토픽별 다음 페이지를 받아 중복 없이 이어붙인다.
+  Future<void> _loadMore() async {
+    if (_loadingMore) return;
+    final topics = ref.read(selectedTopicsProvider).toList()..sort();
+    final pending = topics.where((t) => !_exhausted.contains(t)).toList();
+    if (pending.isEmpty) return;
+    setState(() => _loadingMore = true);
+    try {
+      final repo = ref.read(youtubeRepositoryProvider);
+      var combined = [...ref.read(youtubeVideosProvider)];
+      for (final topic in pending) {
+        final res = await repo.searchTopicPage(
+          topic,
+          pageToken: _nextToken[topic],
+          suffix: _suffix[topic],
+        );
+        _suffix[topic] = res.suffix;
+        if (res.nextPageToken == null) {
+          _exhausted.add(topic);
+        } else {
+          _nextToken[topic] = res.nextPageToken;
+        }
+        combined = dedupeAppend(combined, res.videos, excludedIds: _watchedIds);
+      }
+      if (!mounted) return;
+      ref.read(youtubeVideosProvider.notifier).state = combined;
+    } catch (_) {
+      // 더 받기 실패는 조용히 무시(기존 피드는 유지). 다음 스크롤에서 재시도.
+    } finally {
+      if (mounted) setState(() => _loadingMore = false);
+    }
+  }
+
   @override
   void dispose() {
     _pageController.dispose();
@@ -38,6 +105,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
       final fresh =
           await ref.read(youtubeRepositoryProvider).fetchAndCache(topics);
       if (!mounted) return;
+      _resetPagination();
       ref.read(youtubeVideosProvider.notifier).state = fresh;
       _currentIndex = 0;
       if (_pageController.hasClients) _pageController.jumpToPage(0);
@@ -70,7 +138,25 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
         }
       });
     }
-    if (mounted) setState(() {});
+    if (mounted) {
+      _showSkipNotice();
+      setState(() {});
+    }
+  }
+
+  /// 재생 불가 영상을 건너뛸 때 짧게 알린다(연속 스킵 시 쌓이지 않게 교체).
+  void _showSkipNotice() {
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.clearSnackBars();
+    messenger.showSnackBar(
+      const SnackBar(
+        content: Text('재생할 수 없는 영상이라 다음으로 넘어갔어요'),
+        duration: Duration(milliseconds: 1600),
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: Color(0xE61A1A2E),
+        margin: EdgeInsets.only(bottom: 90, left: 16, right: 16),
+      ),
+    );
   }
 
   @override
@@ -138,6 +224,8 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
           // 토픽 키가 바뀌면(또는 최초) 가변 상태를 새 목록으로 시드한다.
           if (_seededKey != key) {
             _seededKey = key;
+            _resetPagination();
+            _loadWatchedIds();
             WidgetsBinding.instance.addPostFrameCallback((_) {
               if (!mounted) return;
               ref.read(youtubeVideosProvider.notifier).state = fetchedVideos;
@@ -179,13 +267,18 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
       controller: _pageController,
       scrollDirection: Axis.vertical,
       itemCount: list.length,
-      onPageChanged: (i) => setState(() => _currentIndex = i),
+      onPageChanged: (i) {
+        setState(() => _currentIndex = i);
+        // 끝에서 2번째에 도달하면 다음 묶음을 미리 받아온다(무한 스크롤).
+        if (i >= list.length - 2) _loadMore();
+      },
       itemBuilder: (context, index) {
         final video = list[index];
         return ShortsWidget(
           key: ValueKey(video.videoId),
           video: video,
           isActive: index == _currentIndex,
+          onWatched: () => _onWatched(video),
           onUnplayable: () => _onUnplayable(video.videoId),
           onBookmark: () {
             final updated = video.copyWith(isBookmarked: !video.isBookmarked);

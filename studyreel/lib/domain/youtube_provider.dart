@@ -41,3 +41,9 @@ final bookmarkedVideosProvider =
     FutureProvider<List<YoutubeVideo>>((ref) async {
   return ref.read(youtubeRepositoryProvider).loadBookmarked();
 });
+
+/// 프로필 화면 — 최근 본 영상 (시청 기록, watchedAt 내림차순)
+final watchHistoryProvider =
+    FutureProvider<List<YoutubeVideo>>((ref) async {
+  return ref.read(youtubeRepositoryProvider).loadWatchHistory();
+});
