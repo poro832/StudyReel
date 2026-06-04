@@ -1,0 +1,13 @@
+{
+  "name": "studyreel-firestore-rules-tests",
+  "private": true,
+  "type": "module",
+  "description": "Firestore 보안 규칙 통합 테스트 (Firebase 에뮬레이터)",
+  "scripts": {
+    "test": "node --test"
+  },
+  "dependencies": {
+    "@firebase/rules-unit-testing": "^4.0.1",
+    "firebase": "^11.3.0"
+  }
+}
