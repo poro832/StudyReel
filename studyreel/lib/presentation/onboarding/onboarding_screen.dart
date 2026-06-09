@@ -11,6 +11,7 @@ class OnboardingScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final selected = ref.watch(selectedTopicsProvider);
     final notifier = ref.read(selectedTopicsProvider.notifier);
+    final level = ref.watch(selectedLevelProvider);
 
     return Scaffold(
       body: SafeArea(
@@ -65,6 +66,39 @@ class OnboardingScreen extends ConsumerWidget {
                   );
                 }).toList(),
               ),
+              const SizedBox(height: 28),
+              Text('학습 수준',
+                  style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: context.col.text)),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 10,
+                children: kLevels.map((l) {
+                  final on = level == l;
+                  return GestureDetector(
+                    onTap: () =>
+                        ref.read(selectedLevelProvider.notifier).state = l,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 18, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: on ? kPrimaryColor : context.col.surface,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                            color: on ? kPrimaryColor : context.col.border),
+                        boxShadow: on ? null : context.col.cardShadow,
+                      ),
+                      child: Text(l,
+                          style: TextStyle(
+                              color: on ? Colors.white : context.col.text,
+                              fontWeight:
+                                  on ? FontWeight.w700 : FontWeight.w500)),
+                    ),
+                  );
+                }).toList(),
+              ),
               const Spacer(),
               Text('${selected.length}개 선택됨',
                   style: TextStyle(color: context.col.textGray),
@@ -76,9 +110,9 @@ class OnboardingScreen extends ConsumerWidget {
                 child: ElevatedButton(
                   onPressed: notifier.isValid
                       ? () async {
-                          await ref
-                              .read(topicRepositoryProvider)
-                              .saveTopics(selected.toList());
+                          final repo = ref.read(topicRepositoryProvider);
+                          await repo.saveTopics(selected.toList());
+                          await repo.saveLevel(level);
                           if (context.mounted) context.go('/home');
                         }
                       : null,

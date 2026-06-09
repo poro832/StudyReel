@@ -86,8 +86,9 @@ class YoutubeRepository {
   /// 새 영상을 받아 캐시를 갱신한다. 해당 토픽의 기존 영상 중 북마크되지
   /// 않은 것은 삭제해, 오래된·부적합 영상이 다음 로드에 계속 섞이지 않게 한다.
   /// (북마크된 영상은 보존하고, 새 영상이 기존 북마크와 같으면 상태 유지)
-  Future<List<YoutubeVideo>> fetchAndCache(List<String> topics) async {
-    final videos = await _service.searchShorts(topics);
+  Future<List<YoutubeVideo>> fetchAndCache(List<String> topics,
+      {String level = ''}) async {
+    final videos = await _service.searchShorts(topics, level: level);
     if (videos.isEmpty) return videos;
 
     final snap = await _videosRef.get();
@@ -158,9 +159,10 @@ class YoutubeRepository {
 
   /// 무한 스크롤용: 한 토픽의 다음 페이지를 받아온다(서비스 위임).
   Future<({List<YoutubeVideo> videos, String? nextPageToken, String suffix})>
-      searchTopicPage(String topic, {String? pageToken, String? suffix}) =>
+      searchTopicPage(String topic,
+              {String? pageToken, String? suffix, String level = ''}) =>
           _service.searchTopicPage(topic,
-              pageToken: pageToken, suffix: suffix);
+              pageToken: pageToken, suffix: suffix, level: level);
 
   /// 키워드 검색은 캐싱하지 않고 매번 새로 조회 (임의 쿼리로 Firestore 오염 방지)
   Future<List<YoutubeVideo>> search(String query) =>

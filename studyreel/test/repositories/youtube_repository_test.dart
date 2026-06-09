@@ -10,7 +10,8 @@ class _FakeYoutubeService extends YoutubeService {
   _FakeYoutubeService(this._result);
   final List<YoutubeVideo> _result;
   @override
-  Future<List<YoutubeVideo>> searchShorts(List<String> topics) async =>
+  Future<List<YoutubeVideo>> searchShorts(List<String> topics,
+          {String level = ''}) async =>
       _result;
 }
 

@@ -31,6 +31,11 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
       if (dark != null && mounted) {
         ref.read(isDarkProvider.notifier).state = dark;
       }
+      // 저장된 학습 수준 반영(없으면 기본값 유지).
+      final level = await repo.loadLevel();
+      if (level != null && mounted) {
+        ref.read(selectedLevelProvider.notifier).state = level;
+      }
       topics = await repo.loadTopics();
     } catch (_) {
       topics = const [];

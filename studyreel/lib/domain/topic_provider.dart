@@ -6,6 +6,13 @@ const kAvailableTopics = [
   '과학', '경제', '디자인', '심리학',
 ];
 
+/// 학습 수준. 검색어에 붙여 수준에 맞는 영상을 우선 검색한다.
+const kLevels = ['초등', '중등', '고등', '대학'];
+const kDefaultLevel = '대학';
+
+/// 현재 선택된 수준. 스플래시에서 저장값으로 시드, 프로필/온보딩에서 변경.
+final selectedLevelProvider = StateProvider<String>((_) => kDefaultLevel);
+
 class TopicNotifier extends Notifier<Set<String>> {
   @override
   Set<String> build() => {};

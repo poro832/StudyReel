@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/models/youtube_video.dart';
 import '../data/repositories/youtube_repository.dart';
+import 'topic_provider.dart';
 
 final youtubeRepositoryProvider =
     Provider<YoutubeRepository>((_) => YoutubeRepository());
@@ -22,7 +23,8 @@ final youtubeFeedProvider =
     final allCovered = topics.every(covered.contains);
     return (allCovered && cached.isNotEmpty)
         ? cached
-        : await repo.fetchAndCache(topics);
+        : await repo.fetchAndCache(topics,
+            level: ref.read(selectedLevelProvider));
   },
 );
 

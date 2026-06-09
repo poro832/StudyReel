@@ -30,6 +30,17 @@ class TopicRepository {
     return raw?.cast<String>() ?? const [];
   }
 
+  /// 학습 수준(초등/중등/고등/대학)을 저장한다.
+  Future<void> saveLevel(String level) async {
+    await _userDoc.set({'level': level}, SetOptions(merge: true));
+  }
+
+  /// 저장된 수준을 불러온다. 없으면 null(기본값 사용).
+  Future<String?> loadLevel() async {
+    final snap = await _userDoc.get();
+    return snap.data()?['level'] as String?;
+  }
+
   /// 테마 설정(다크 여부)을 저장한다.
   Future<void> saveThemeDark(bool dark) async {
     await _userDoc.set({'themeDark': dark}, SetOptions(merge: true));

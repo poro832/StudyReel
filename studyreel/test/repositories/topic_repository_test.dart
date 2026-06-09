@@ -29,5 +29,14 @@ void main() {
       await repo.saveTopics(['역사', '경제', '디자인']);
       expect(await repo.loadTopics(), ['역사', '경제', '디자인']);
     });
+
+    test('saveLevel → loadLevel 라운드트립', () async {
+      await repo.saveLevel('고등');
+      expect(await repo.loadLevel(), '고등');
+    });
+
+    test('저장 전 수준은 null', () async {
+      expect(await repo.loadLevel(), isNull);
+    });
   });
 }

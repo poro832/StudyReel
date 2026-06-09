@@ -12,6 +12,31 @@ import '../common/video_list_tile.dart';
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
 
+  /// 수준을 바꾸고 새 영상을 받아 피드를 갱신한다.
+  Future<void> _changeLevel(
+      WidgetRef ref, BuildContext context, String level) async {
+    if (level == ref.read(selectedLevelProvider)) return;
+    ref.read(selectedLevelProvider.notifier).state = level;
+    await ref.read(topicRepositoryProvider).saveLevel(level);
+    if (!context.mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.showSnackBar(SnackBar(
+      content: Text('$level 수준으로 새 영상을 받는 중...'),
+      duration: const Duration(seconds: 2),
+    ));
+    try {
+      final topics = ref.read(selectedTopicsProvider).toList()..sort();
+      final fresh = await ref
+          .read(youtubeRepositoryProvider)
+          .fetchAndCache(topics, level: level);
+      ref.read(youtubeVideosProvider.notifier).state = fresh;
+    } catch (_) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('영상을 받지 못했어요. 피드에서 새로고침해 주세요.')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final streakAsync = ref.watch(streakProvider);
@@ -52,6 +77,11 @@ class ProfileScreen extends ConsumerWidget {
               ref.read(isDarkProvider.notifier).state = v;
               ref.read(topicRepositoryProvider).saveThemeDark(v);
             },
+          ),
+          const SizedBox(height: 12),
+          _LevelTile(
+            level: ref.watch(selectedLevelProvider),
+            onPick: (l) => _changeLevel(ref, context, l),
           ),
           const SizedBox(height: 24),
           Text('저장한 영상',
@@ -132,6 +162,86 @@ class ProfileScreen extends ConsumerWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _LevelTile extends StatelessWidget {
+  final String level;
+  final ValueChanged<String> onPick;
+  const _LevelTile({required this.level, required this.onPick});
+
+  void _openPicker(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: context.col.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetCtx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 8),
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Text('학습 수준 선택',
+                  style: TextStyle(
+                      color: context.col.text,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700)),
+            ),
+            for (final l in kLevels)
+              ListTile(
+                title: Text(l, style: TextStyle(color: context.col.text)),
+                trailing: l == level
+                    ? const Icon(Icons.check, color: kPrimaryColor)
+                    : null,
+                onTap: () {
+                  Navigator.of(sheetCtx).pop();
+                  onPick(l);
+                },
+              ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: () => _openPicker(context),
+      borderRadius: BorderRadius.circular(18),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: context.col.surface,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: context.col.border),
+          boxShadow: context.col.cardShadow,
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.school_outlined, color: kPrimaryColor),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Text('학습 수준',
+                  style: TextStyle(
+                      color: context.col.text,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700)),
+            ),
+            Text(level,
+                style: const TextStyle(
+                    color: kPrimaryColor, fontWeight: FontWeight.w700)),
+            const SizedBox(width: 6),
+            Icon(Icons.chevron_right, color: context.col.textGray),
+          ],
+        ),
       ),
     );
   }

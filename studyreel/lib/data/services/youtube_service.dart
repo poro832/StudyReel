@@ -121,12 +121,13 @@ class YoutubeService {
     return result;
   }
 
-  Future<List<YoutubeVideo>> searchShorts(List<String> topics) async {
+  Future<List<YoutubeVideo>> searchShorts(List<String> topics,
+      {String level = ''}) async {
     final suffix = _eduSuffixes[Random().nextInt(_eduSuffixes.length)];
     final videos = <YoutubeVideo>[];
     for (final topic in topics) {
       final body = await _search(
-        query: '$topic $suffix',
+        query: [topic, if (level.isNotEmpty) level, suffix].join(' '),
         maxResults: 15,
         videoDuration: 'short', // 4분 미만 (정밀 길이 필터는 아래에서)
         // 조회수/최신순은 예능을 상위로 끌어올려 교육 관련성을 떨어뜨림.
@@ -148,10 +149,11 @@ class YoutubeService {
     String topic, {
     String? pageToken,
     String? suffix,
+    String level = '',
   }) async {
     final s = suffix ?? _eduSuffixes[Random().nextInt(_eduSuffixes.length)];
     final body = await _search(
-      query: '$topic $s',
+      query: [topic, if (level.isNotEmpty) level, s].join(' '),
       maxResults: 15,
       videoDuration: 'short',
       order: 'relevance',

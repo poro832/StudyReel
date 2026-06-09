@@ -98,6 +98,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
           topic,
           pageToken: _nextToken[topic],
           suffix: _suffix[topic],
+          level: ref.read(selectedLevelProvider),
         );
         _suffix[topic] = res.suffix;
         if (res.nextPageToken == null) {
@@ -130,8 +131,10 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
     try {
       // 최신 시청 기록을 반영해 이미 본 영상이 다시 뜨지 않게 한다.
       await _loadWatchedIds();
-      final fresh =
-          await ref.read(youtubeRepositoryProvider).fetchAndCache(topics);
+      final fresh = await ref.read(youtubeRepositoryProvider).fetchAndCache(
+            topics,
+            level: ref.read(selectedLevelProvider),
+          );
       if (!mounted) return;
       _resetPagination();
       ref.read(youtubeVideosProvider.notifier).state = _excludeWatched(fresh);
