@@ -8,6 +8,10 @@ import '../../data/models/youtube_video.dart';
 class ShortsWidget extends StatefulWidget {
   final YoutubeVideo video;
   final bool isActive;
+
+  /// 화면이 실제로 보이는지(다른 탭/화면에 가려지면 false). false면 재생을
+  /// 멈춰 배경 재생음을 방지한다.
+  final bool screenVisible;
   final VoidCallback onBookmark;
 
   /// 인앱 재생이 불가한 영상(임베드 차단·삭제·검색 불가)으로 판명되면 1회 호출.
@@ -22,6 +26,7 @@ class ShortsWidget extends StatefulWidget {
     required this.video,
     required this.isActive,
     required this.onBookmark,
+    this.screenVisible = true,
     this.onUnplayable,
     this.onWatched,
   });
@@ -62,7 +67,7 @@ class _ShortsWidgetState extends State<ShortsWidget> {
     super.initState();
     _controller = YoutubePlayerController.fromVideoId(
       videoId: widget.video.videoId,
-      autoPlay: widget.isActive,
+      autoPlay: widget.isActive && widget.screenVisible,
       params: const YoutubePlayerParams(
         // 풀화면 몰입을 위해 네이티브 컨트롤은 숨기고 탭으로 재생/정지.
         showControls: false,
@@ -109,6 +114,7 @@ class _ShortsWidgetState extends State<ShortsWidget> {
       // 활성 페이지의 영상이 cue(준비·정지) 상태가 되면 즉시 자동재생.
       // 스와이프해 넘어온 다음 영상이 바로 재생됨(진짜 쇼츠처럼).
       if (widget.isActive &&
+          widget.screenVisible &&
           !_embedFailed &&
           value.playerState == PlayerState.cued) {
         _controller.playVideo();
@@ -119,7 +125,7 @@ class _ShortsWidgetState extends State<ShortsWidget> {
         setState(() => _paused = paused);
       }
     });
-    if (widget.isActive) _armWatchdog();
+    if (widget.isActive && widget.screenVisible) _armWatchdog();
   }
 
   /// 활성 영상이 제한시간 내 재생되지 않으면 재생 불가로 보고 스킵을 트리거한다.
@@ -139,17 +145,20 @@ class _ShortsWidgetState extends State<ShortsWidget> {
   @override
   void didUpdateWidget(covariant ShortsWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.isActive != oldWidget.isActive) {
-      if (widget.isActive) {
+    // 활성 + 화면 보임일 때만 재생. 둘 중 하나라도 바뀌면 재생/정지 갱신.
+    final wasPlaying = oldWidget.isActive && oldWidget.screenVisible;
+    final nowPlaying = widget.isActive && widget.screenVisible;
+    if (wasPlaying != nowPlaying) {
+      if (nowPlaying) {
         // 비활성 상태에서 이미 재생 불가로 판명됐다면, 활성이 되는 순간 통보.
         if (_embedFailed) {
           _maybeReportUnplayable();
         } else {
           _controller.playVideo();
-          _armWatchdog(); // 활성화됐는데 재생 안 되면 스킵
+          _armWatchdog(); // 보이는데 재생 안 되면 스킵
         }
       } else {
-        _watchdog?.cancel(); // 비활성 영상엔 워치독 불필요
+        _watchdog?.cancel(); // 안 보이는 영상엔 워치독 불필요
         if (!_embedFailed) _controller.pauseVideo();
       }
     }

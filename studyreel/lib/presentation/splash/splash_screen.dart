@@ -37,7 +37,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     }
     if (!mounted) return;
     ref.read(selectedTopicsProvider.notifier).setAll(topics);
-    context.go(topics.isEmpty ? '/onboarding' : '/feed');
+    context.go(topics.isEmpty ? '/onboarding' : '/home');
   }
 
   @override

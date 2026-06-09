@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
-import '../../core/theme.dart';
+import 'package:visibility_detector/visibility_detector.dart';
 import '../../data/models/youtube_video.dart';
 import '../../domain/feed_dedup.dart';
 import '../../domain/streak_provider.dart';
@@ -10,7 +9,10 @@ import '../../domain/youtube_provider.dart';
 import 'shorts_widget.dart';
 
 class FeedScreen extends ConsumerStatefulWidget {
-  const FeedScreen({super.key});
+  /// 하단 탭 셸에서 '피드 탭이 선택됨' 여부. IndexedStack은 비활성 탭을
+  /// 그리지 않을 뿐 트리에 남겨 두므로, 이 플래그로 재생 여부를 제어한다.
+  final bool active;
+  const FeedScreen({super.key, this.active = true});
 
   @override
   ConsumerState<FeedScreen> createState() => _FeedScreenState();
@@ -20,6 +22,10 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
   final PageController _pageController = PageController();
   int _currentIndex = 0;
   bool _refreshing = false;
+
+  /// 피드 화면이 실제로 보이는지(탭 전환·다른 화면에 가려지면 false).
+  /// false면 ShortsWidget이 재생을 멈춰 배경 재생음을 막는다.
+  bool _screenVisible = true;
 
   /// 가변 상태(youtubeVideosProvider)에 시드한 토픽 키. 토픽이 바뀌면
   /// 키가 달라져 새 목록으로 다시 시드한다.
@@ -189,12 +195,6 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
                     color: Colors.white)),
-            const SizedBox(width: 20),
-            GestureDetector(
-              onTap: () => context.push('/explore'),
-              child: const Text('탐색',
-                  style: TextStyle(fontSize: 16, color: Colors.white70)),
-            ),
             const Spacer(),
             if (_refreshing)
               const Padding(
@@ -212,18 +212,6 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
                 icon: const Icon(Icons.refresh, color: Colors.white),
                 tooltip: '새로고침',
               ),
-            GestureDetector(
-              onTap: () => context.push('/profile'),
-              child: const CircleAvatar(
-                radius: 18,
-                backgroundColor: kPrimaryColor,
-                child: Text('나',
-                    style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600)),
-              ),
-            ),
           ],
         ),
       ),
@@ -285,10 +273,18 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
   }
 
   Widget _buildPager(List<YoutubeVideo> list) {
-    return PageView.builder(
-      controller: _pageController,
-      scrollDirection: Axis.vertical,
-      itemCount: list.length,
+    return VisibilityDetector(
+      key: const ValueKey('feed-visibility'),
+      onVisibilityChanged: (info) {
+        final visible = info.visibleFraction > 0;
+        if (visible != _screenVisible && mounted) {
+          setState(() => _screenVisible = visible);
+        }
+      },
+      child: PageView.builder(
+        controller: _pageController,
+        scrollDirection: Axis.vertical,
+        itemCount: list.length,
       onPageChanged: (i) {
         setState(() => _currentIndex = i);
         // 끝에서 2번째에 도달하면 다음 묶음을 미리 받아온다(무한 스크롤).
@@ -300,6 +296,8 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
           key: ValueKey(video.videoId),
           video: video,
           isActive: index == _currentIndex,
+          // 피드 탭이 선택돼 있고(active) 화면이 가려지지 않았을 때만 재생.
+          screenVisible: widget.active && _screenVisible,
           onWatched: () => _onWatched(video),
           onUnplayable: () => _onUnplayable(video.videoId),
           onBookmark: () {
@@ -314,6 +312,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
           },
         );
       },
+      ),
     );
   }
 }

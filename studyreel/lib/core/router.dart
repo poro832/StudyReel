@@ -9,9 +9,7 @@ import '../presentation/auth/login_screen.dart';
 import '../presentation/splash/splash_screen.dart';
 import '../presentation/onboarding/onboarding_screen.dart';
 import '../presentation/onboarding/topic_edit_screen.dart';
-import '../presentation/feed/feed_screen.dart';
-import '../presentation/explore/explore_screen.dart';
-import '../presentation/profile/profile_screen.dart';
+import '../presentation/home/home_shell.dart';
 import '../presentation/watch/watch_screen.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
@@ -51,9 +49,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/topics',
         builder: (context, _) => const TopicEditScreen(),
       ),
-      GoRoute(path: '/feed', builder: (context, _) => const FeedScreen()),
-      GoRoute(path: '/explore', builder: (context, _) => const ExploreScreen()),
-      GoRoute(path: '/profile', builder: (context, _) => const ProfileScreen()),
+      GoRoute(path: '/home', builder: (context, _) => const HomeShell()),
       GoRoute(
         path: '/watch',
         builder: (context, state) {

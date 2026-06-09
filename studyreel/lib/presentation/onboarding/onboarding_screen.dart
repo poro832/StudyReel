@@ -79,7 +79,7 @@ class OnboardingScreen extends ConsumerWidget {
                           await ref
                               .read(topicRepositoryProvider)
                               .saveTopics(selected.toList());
-                          if (context.mounted) context.go('/feed');
+                          if (context.mounted) context.go('/home');
                         }
                       : null,
                   style: ElevatedButton.styleFrom(

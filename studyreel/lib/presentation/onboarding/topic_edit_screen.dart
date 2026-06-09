@@ -36,7 +36,7 @@ class _TopicEditScreenState extends ConsumerState<TopicEditScreen> {
       // 토픽이 바뀌었으니 피드를 새 토픽으로 다시 받도록 무효화한다.
       ref.invalidate(youtubeFeedProvider);
       if (!mounted) return;
-      context.go('/feed');
+      context.go('/home');
     } catch (_) {
       if (!mounted) return;
       setState(() => _saving = false);
