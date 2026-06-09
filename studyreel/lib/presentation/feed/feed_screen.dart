@@ -67,6 +67,14 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
     if (mounted) _watchedIds = ids;
   }
 
+  /// 이미 본 영상을 제외한다. 모두 본 경우(빈 결과)엔 빈 피드가 되지 않게
+  /// 원본을 그대로 보여준다(폴백).
+  List<YoutubeVideo> _excludeWatched(List<YoutubeVideo> videos) {
+    final filtered =
+        videos.where((v) => !_watchedIds.contains(v.videoId)).toList();
+    return filtered.isEmpty ? videos : filtered;
+  }
+
   /// 토픽 변경/새로고침 시 무한 스크롤 커서를 초기화한다.
   void _resetPagination() {
     _nextToken.clear();
@@ -120,11 +128,13 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
     setState(() => _refreshing = true);
     final topics = ref.read(selectedTopicsProvider).toList()..sort();
     try {
+      // 최신 시청 기록을 반영해 이미 본 영상이 다시 뜨지 않게 한다.
+      await _loadWatchedIds();
       final fresh =
           await ref.read(youtubeRepositoryProvider).fetchAndCache(topics);
       if (!mounted) return;
       _resetPagination();
-      ref.read(youtubeVideosProvider.notifier).state = fresh;
+      ref.read(youtubeVideosProvider.notifier).state = _excludeWatched(fresh);
       _currentIndex = 0;
       if (_pageController.hasClients) _pageController.jumpToPage(0);
     } catch (_) {
@@ -225,10 +235,11 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
           if (_seededKey != key) {
             _seededKey = key;
             _resetPagination();
-            _loadWatchedIds();
-            WidgetsBinding.instance.addPostFrameCallback((_) {
+            // 시청 기록을 불러온 뒤 이미 본 영상을 제외하고 시드한다.
+            _loadWatchedIds().then((_) {
               if (!mounted) return;
-              ref.read(youtubeVideosProvider.notifier).state = fetchedVideos;
+              ref.read(youtubeVideosProvider.notifier).state =
+                  _excludeWatched(fetchedVideos);
               _currentIndex = 0;
               if (_pageController.hasClients) _pageController.jumpToPage(0);
             });
