@@ -68,6 +68,59 @@ class YoutubeService {
     return true;
   }
 
+  /// 학습 품질 점수(높을수록 우선). 교육 카테고리 가산점 + 조회수(로그) +
+  /// 좋아요/조회수 참여도 비율을 합산한다. 값이 없으면 0으로 안전 처리.
+  static int qualityScore({
+    String? categoryId,
+    int? viewCount,
+    int? likeCount,
+  }) {
+    var score = 0;
+    // 교육 성격 카테고리 가산점: 27 교육, 28 과학기술, 26 How-to,
+    // 25 뉴스, 22 인물/블로그, 29 비영리(교육 채널 다수).
+    const eduBoost = {
+      '27': 50,
+      '28': 35,
+      '26': 30,
+      '25': 12,
+      '22': 10,
+      '29': 10,
+    };
+    score += eduBoost[categoryId] ?? 0;
+    final views = viewCount ?? 0;
+    if (views > 0) {
+      // log10(views)*10 → 1천:30, 1만:40, 10만:50, 100만:60
+      score += (log(views) / ln10 * 10).round();
+      if (likeCount != null && likeCount > 0) {
+        // 좋아요/조회수 비율(보통 0.01~0.05)에 가산점(상한 50)
+        score += (likeCount / views * 1000).round().clamp(0, 50);
+      }
+    }
+    return score;
+  }
+
+  /// 토픽별로 묶어 라운드로빈으로 섞는다(품질 순서는 토픽 내에서 유지).
+  /// 여러 토픽이 골고루 나오면서도 각 토픽의 상위 품질 영상이 먼저 온다.
+  static List<YoutubeVideo> _interleaveByTopic(List<YoutubeVideo> videos) {
+    final byTopic = <String, List<YoutubeVideo>>{};
+    for (final v in videos) {
+      (byTopic[v.topic] ??= []).add(v);
+    }
+    final queues = byTopic.values.toList();
+    final result = <YoutubeVideo>[];
+    for (var i = 0; ; i++) {
+      var addedAny = false;
+      for (final q in queues) {
+        if (i < q.length) {
+          result.add(q[i]);
+          addedAny = true;
+        }
+      }
+      if (!addedAny) break;
+    }
+    return result;
+  }
+
   Future<List<YoutubeVideo>> searchShorts(List<String> topics) async {
     final suffix = _eduSuffixes[Random().nextInt(_eduSuffixes.length)];
     final videos = <YoutubeVideo>[];
@@ -82,9 +135,9 @@ class YoutubeService {
       );
       videos.addAll(_parseItems(body['items'] as List, topic));
     }
+    // 품질 순(_filterPlayableShorts가 정렬)으로 받아 토픽을 라운드로빈으로 섞는다.
     final playable = await _filterPlayableShorts(videos);
-    playable.shuffle(); // 토픽이 섞이도록
-    return playable;
+    return _interleaveByTopic(playable);
   }
 
   /// 무한 스크롤용: 한 토픽의 한 페이지를 받아 필터링한 영상과 다음 페이지
@@ -165,13 +218,14 @@ class YoutubeService {
       List<YoutubeVideo> videos) async {
     if (videos.isEmpty) return [];
 
-    // 통과한 영상의 id → 길이(초) 매핑
+    // 통과한 영상의 id → 길이(초), id → 품질 점수 매핑
     final passed = <String, int>{};
+    final scores = <String, int>{};
     for (var i = 0; i < videos.length; i += 50) {
       final chunk = videos.sublist(i, (i + 50).clamp(0, videos.length));
       final ids = chunk.map((v) => v.videoId).join(',');
       final uri = Uri.parse(_videosEndpoint).replace(queryParameters: {
-        'part': 'snippet,status,contentDetails',
+        'part': 'snippet,status,contentDetails,statistics',
         'id': ids,
         'key': _ytApiKey,
       });
@@ -206,16 +260,27 @@ class YoutubeService {
             playable &&
             seconds > 0 &&
             seconds <= _maxShortsSeconds) {
-          passed[item['id'] as String] = seconds;
+          final id = item['id'] as String;
+          passed[id] = seconds;
+          final stats = item['statistics'] as Map<String, dynamic>?;
+          scores[id] = qualityScore(
+            categoryId: categoryId,
+            viewCount: int.tryParse(stats?['viewCount'] as String? ?? ''),
+            likeCount: int.tryParse(stats?['likeCount'] as String? ?? ''),
+          );
         }
       }
     }
 
-    return videos
+    final result = videos
         .where((v) => passed.containsKey(v.videoId))
         .map((v) =>
             v.copyWith(embeddable: true, durationSeconds: passed[v.videoId]))
         .toList();
+    // 품질 점수 내림차순 정렬(높은 학습 품질 우선).
+    result.sort(
+        (a, b) => (scores[b.videoId] ?? 0).compareTo(scores[a.videoId] ?? 0));
+    return result;
   }
 
   /// ISO 8601 기간(PT#H#M#S)을 초로 변환. 파싱 실패 시 0.

@@ -75,4 +75,34 @@ void main() {
       expect(YoutubeService.isPlayableInApp(uploadStatus: 'failed'), isFalse);
     });
   });
+
+  group('YoutubeService.qualityScore — 학습 품질 점수', () {
+    test('교육 카테고리(27)가 비교육 카테고리보다 높은 점수', () {
+      final edu = YoutubeService.qualityScore(
+          categoryId: '27', viewCount: 10000, likeCount: 100);
+      final other = YoutubeService.qualityScore(
+          categoryId: '22', viewCount: 10000, likeCount: 100);
+      expect(edu, greaterThan(other));
+    });
+
+    test('조회수가 높을수록 점수가 높다', () {
+      final high =
+          YoutubeService.qualityScore(categoryId: '27', viewCount: 1000000);
+      final low =
+          YoutubeService.qualityScore(categoryId: '27', viewCount: 1000);
+      expect(high, greaterThan(low));
+    });
+
+    test('같은 조회수면 좋아요 비율이 높을수록 점수가 높다', () {
+      final liked = YoutubeService.qualityScore(
+          categoryId: '27', viewCount: 10000, likeCount: 500);
+      final fewer = YoutubeService.qualityScore(
+          categoryId: '27', viewCount: 10000, likeCount: 10);
+      expect(liked, greaterThan(fewer));
+    });
+
+    test('값이 없어도(null) 0 이상으로 안전하게 처리', () {
+      expect(YoutubeService.qualityScore(), greaterThanOrEqualTo(0));
+    });
+  });
 }
