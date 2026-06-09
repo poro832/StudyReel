@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme.dart';
 import '../../domain/youtube_provider.dart';
+import '../common/branded_loader.dart';
 import '../common/video_list_tile.dart';
 
 class ExploreScreen extends ConsumerStatefulWidget {
@@ -90,8 +91,8 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                             VideoListTile(video: videos[i]),
                       );
                     },
-                    loading: () => const Center(
-                        child: CircularProgressIndicator()),
+                    loading: () =>
+                        const BrandedLoader(label: '검색 중...'),
                     error: (e, _) => Center(
                       child: Padding(
                         padding: const EdgeInsets.all(24),

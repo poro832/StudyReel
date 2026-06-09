@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../core/theme.dart';
 import '../../domain/theme_provider.dart';
 import '../../domain/topic_provider.dart';
+import '../common/branded_loader.dart';
 
 /// 로그인 후 진입점. 저장된 관심 토픽을 불러와 분기한다.
 /// - 토픽 있음 → 시드 후 피드로 (온보딩 건너뜀)
@@ -43,7 +43,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   @override
   Widget build(BuildContext context) {
     return const Scaffold(
-      body: Center(child: CircularProgressIndicator(color: kPrimaryColor)),
+      body: BrandedLoader(),
     );
   }
 }

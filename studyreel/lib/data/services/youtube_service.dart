@@ -113,10 +113,17 @@ class YoutubeService {
     );
   }
 
-  /// 키워드 자유 검색 (탐색 화면용). 탐색은 외부 실행이라 필터 미적용.
+  /// 키워드 검색 (탐색 화면용). 결과를 탭하면 인앱에서 재생되므로 피드와
+  /// 동일하게 임베드 가능·60초·교육 적합·재생 가능 필터를 적용한다.
   Future<List<YoutubeVideo>> searchByKeyword(String query) async {
-    final body = await _search(query: query, maxResults: 15);
-    return _parseItems(body['items'] as List, query);
+    final body = await _search(
+      query: query,
+      maxResults: 15,
+      videoDuration: 'short',
+      order: 'relevance',
+    );
+    final parsed = _parseItems(body['items'] as List, query);
+    return _filterPlayableShorts(parsed);
   }
 
   Future<Map<String, dynamic>> _search({

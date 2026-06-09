@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 import '../../data/models/youtube_video.dart';
+import '../common/branded_loader.dart';
 import '../../domain/feed_dedup.dart';
 import '../../domain/streak_provider.dart';
 import '../../domain/topic_provider.dart';
@@ -253,7 +254,8 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
           }
           return _buildPager(stateVideos);
         },
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () =>
+            const BrandedLoader(label: '학습 쇼츠를 불러오는 중...', onDark: true),
         error: (e, _) => Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
