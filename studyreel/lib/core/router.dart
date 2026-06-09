@@ -1,8 +1,9 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../data/models/youtube_video.dart';
 import '../domain/auth_provider.dart';
 import '../presentation/auth/login_screen.dart';
 import '../presentation/splash/splash_screen.dart';
@@ -11,6 +12,7 @@ import '../presentation/onboarding/topic_edit_screen.dart';
 import '../presentation/feed/feed_screen.dart';
 import '../presentation/explore/explore_screen.dart';
 import '../presentation/profile/profile_screen.dart';
+import '../presentation/watch/watch_screen.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   final authRepository = ref.watch(authRepositoryProvider);
@@ -52,6 +54,22 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/feed', builder: (context, _) => const FeedScreen()),
       GoRoute(path: '/explore', builder: (context, _) => const ExploreScreen()),
       GoRoute(path: '/profile', builder: (context, _) => const ProfileScreen()),
+      GoRoute(
+        path: '/watch',
+        builder: (context, state) {
+          final video = state.extra as YoutubeVideo?;
+          if (video == null) {
+            return const Scaffold(
+              backgroundColor: Colors.black,
+              body: Center(
+                child: Text('영상을 찾을 수 없습니다.',
+                    style: TextStyle(color: Colors.white70)),
+              ),
+            );
+          }
+          return WatchScreen(video: video);
+        },
+      ),
     ],
   );
 });

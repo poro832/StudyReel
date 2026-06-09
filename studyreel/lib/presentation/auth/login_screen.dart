@@ -49,20 +49,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 ),
               ),
               const SizedBox(height: 16),
-              const Text(
+              Text(
                 '짧은 영상으로\n매일 학습을 이어가세요',
                 style: TextStyle(
                   fontSize: 32,
                   fontWeight: FontWeight.bold,
                   height: 1.3,
-                  color: kTextColor,
+                  color: context.col.text,
                 ),
               ),
               const SizedBox(height: 12),
-              const Text(
+              Text(
                 'Google 계정으로 로그인하면 저장한 영상과 학습 기록을 안전하게 보관할 수 있습니다.',
                 style: TextStyle(
-                  color: kTextGray,
+                  color: context.col.textGray,
                   height: 1.5,
                 ),
               ),
@@ -81,8 +81,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       : const Icon(Icons.login),
                   label: Text(_isSigningIn ? '로그인 중...' : 'Google로 계속하기'),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: kTextColor,
-                    side: const BorderSide(color: kBorderColor),
+                    foregroundColor: context.col.text,
+                    side: BorderSide(color: context.col.border),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
                     ),

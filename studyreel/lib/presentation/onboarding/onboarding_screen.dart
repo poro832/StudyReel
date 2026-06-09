@@ -26,15 +26,15 @@ class OnboardingScreen extends ConsumerWidget {
                       fontWeight: FontWeight.bold,
                       color: kPrimaryColor)),
               const SizedBox(height: 32),
-              const Text('어떤 걸\n배우고 싶나요?',
+              Text('어떤 걸\n배우고 싶나요?',
                   style: TextStyle(
                       fontSize: 32,
                       fontWeight: FontWeight.bold,
                       height: 1.3,
-                      color: kTextColor)),
+                      color: context.col.text)),
               const SizedBox(height: 12),
-              const Text('3개 이상 선택해 주세요.',
-                  style: TextStyle(color: kTextGray)),
+              Text('3개 이상 선택해 주세요.',
+                  style: TextStyle(color: context.col.textGray)),
               const SizedBox(height: 32),
               Wrap(
                 spacing: 12,
@@ -47,17 +47,17 @@ class OnboardingScreen extends ConsumerWidget {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 20, vertical: 12),
                       decoration: BoxDecoration(
-                        color: isSelected ? kPrimaryColor : kSurfaceColor,
+                        color: isSelected ? kPrimaryColor : context.col.surface,
                         borderRadius: BorderRadius.circular(22),
                         border: Border.all(
-                          color: isSelected ? kPrimaryColor : kBorderColor,
+                          color: isSelected ? kPrimaryColor : context.col.border,
                           width: 1,
                         ),
-                        boxShadow: isSelected ? null : kCardShadow,
+                        boxShadow: isSelected ? null : context.col.cardShadow,
                       ),
                       child: Text(topic,
                           style: TextStyle(
-                              color: isSelected ? Colors.white : kTextColor,
+                              color: isSelected ? Colors.white : context.col.text,
                               fontWeight: isSelected
                                   ? FontWeight.w700
                                   : FontWeight.w500)),
@@ -67,7 +67,7 @@ class OnboardingScreen extends ConsumerWidget {
               ),
               const Spacer(),
               Text('${selected.length}개 선택됨',
-                  style: const TextStyle(color: kTextGray),
+                  style: TextStyle(color: context.col.textGray),
                   textAlign: TextAlign.center),
               const SizedBox(height: 12),
               SizedBox(
@@ -84,7 +84,7 @@ class OnboardingScreen extends ConsumerWidget {
                       : null,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: kPrimaryColor,
-                    disabledBackgroundColor: kBorderColor,
+                    disabledBackgroundColor: context.col.border,
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16)),
                   ),

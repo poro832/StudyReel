@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import '../../core/theme.dart';
 import '../../domain/auth_provider.dart';
 import '../../domain/streak_provider.dart';
+import '../../domain/theme_provider.dart';
+import '../../domain/topic_provider.dart';
 import '../../domain/youtube_provider.dart';
 import '../common/video_list_tile.dart';
 
@@ -19,13 +21,13 @@ class ProfileScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: kBgColor,
+        backgroundColor: context.col.bg,
         elevation: 0,
-        title: const Text('프로필',
+        title: Text('프로필',
             style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
-                color: kTextColor)),
+                color: context.col.text)),
       ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
@@ -43,21 +45,29 @@ class ProfileScreen extends ConsumerWidget {
           _StreakCard(streakAsync: streakAsync),
           const SizedBox(height: 16),
           _TopicEditTile(onTap: () => context.push('/topics')),
+          const SizedBox(height: 12),
+          _ThemeToggleTile(
+            isDark: ref.watch(isDarkProvider),
+            onChanged: (v) {
+              ref.read(isDarkProvider.notifier).state = v;
+              ref.read(topicRepositoryProvider).saveThemeDark(v);
+            },
+          ),
           const SizedBox(height: 24),
-          const Text('저장한 영상',
+          Text('저장한 영상',
               style: TextStyle(
-                  color: kTextColor,
+                  color: context.col.text,
                   fontSize: 16,
                   fontWeight: FontWeight.w700)),
           const SizedBox(height: 12),
           bookmarksAsync.when(
             data: (videos) {
               if (videos.isEmpty) {
-                return const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 40),
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 40),
                   child: Center(
                     child: Text('아직 저장한 영상이 없습니다.',
-                        style: TextStyle(color: kTextGray)),
+                        style: TextStyle(color: context.col.textGray)),
                   ),
                 );
               }
@@ -74,29 +84,29 @@ class ProfileScreen extends ConsumerWidget {
               padding: EdgeInsets.symmetric(vertical: 40),
               child: Center(child: CircularProgressIndicator()),
             ),
-            error: (e, _) => const Padding(
-              padding: EdgeInsets.symmetric(vertical: 40),
+            error: (e, _) => Padding(
+              padding: const EdgeInsets.symmetric(vertical: 40),
               child: Center(
                 child: Text('북마크를 불러오지 못했습니다.',
-                    style: TextStyle(color: kTextGray)),
+                    style: TextStyle(color: context.col.textGray)),
               ),
             ),
           ),
           const SizedBox(height: 24),
-          const Text('최근 본 영상',
+          Text('최근 본 영상',
               style: TextStyle(
-                  color: kTextColor,
+                  color: context.col.text,
                   fontSize: 16,
                   fontWeight: FontWeight.w700)),
           const SizedBox(height: 12),
           historyAsync.when(
             data: (videos) {
               if (videos.isEmpty) {
-                return const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 40),
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 40),
                   child: Center(
                     child: Text('아직 본 영상이 없습니다.',
-                        style: TextStyle(color: kTextGray)),
+                        style: TextStyle(color: context.col.textGray)),
                   ),
                 );
               }
@@ -113,13 +123,52 @@ class ProfileScreen extends ConsumerWidget {
               padding: EdgeInsets.symmetric(vertical: 40),
               child: Center(child: CircularProgressIndicator()),
             ),
-            error: (e, _) => const Padding(
-              padding: EdgeInsets.symmetric(vertical: 40),
+            error: (e, _) => Padding(
+              padding: const EdgeInsets.symmetric(vertical: 40),
               child: Center(
                 child: Text('시청 기록을 불러오지 못했습니다.',
-                    style: TextStyle(color: kTextGray)),
+                    style: TextStyle(color: context.col.textGray)),
               ),
             ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ThemeToggleTile extends StatelessWidget {
+  final bool isDark;
+  final ValueChanged<bool> onChanged;
+  const _ThemeToggleTile({required this.isDark, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(16, 6, 8, 6),
+      decoration: BoxDecoration(
+        color: context.col.surface,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: context.col.border),
+        boxShadow: context.col.cardShadow,
+      ),
+      child: Row(
+        children: [
+          Icon(isDark ? Icons.dark_mode : Icons.light_mode,
+              color: kPrimaryColor),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Text(isDark ? '다크 모드' : '라이트 모드',
+                style: TextStyle(
+                    color: context.col.text,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700)),
+          ),
+          Switch(
+            value: isDark,
+            activeColor: kPrimaryColor,
+            onChanged: onChanged,
           ),
         ],
       ),
@@ -140,23 +189,23 @@ class _TopicEditTile extends StatelessWidget {
         width: double.infinity,
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: kSurfaceColor,
+          color: context.col.surface,
           borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: kBorderColor),
-          boxShadow: kCardShadow,
+          border: Border.all(color: context.col.border),
+          boxShadow: context.col.cardShadow,
         ),
         child: Row(
           children: [
             const Icon(Icons.tune, color: kPrimaryColor),
             const SizedBox(width: 14),
-            const Expanded(
+            Expanded(
               child: Text('관심 토픽 변경',
                   style: TextStyle(
-                      color: kTextColor,
+                      color: context.col.text,
                       fontSize: 15,
                       fontWeight: FontWeight.w700)),
             ),
-            const Icon(Icons.chevron_right, color: kTextGray),
+            Icon(Icons.chevron_right, color: context.col.textGray),
           ],
         ),
       ),
@@ -183,10 +232,10 @@ class _AccountCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: kSurfaceColor,
+        color: context.col.surface,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: kBorderColor),
-        boxShadow: kCardShadow,
+        border: Border.all(color: context.col.border),
+        boxShadow: context.col.cardShadow,
       ),
       child: Row(
         children: [
@@ -207,8 +256,8 @@ class _AccountCard extends StatelessWidget {
                   name?.isNotEmpty == true ? name! : 'StudyReel 사용자',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: kTextColor,
+                  style: TextStyle(
+                    color: context.col.text,
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
                   ),
@@ -218,7 +267,7 @@ class _AccountCard extends StatelessWidget {
                   email?.isNotEmpty == true ? email! : 'Google 계정 로그인',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(color: kTextGray, fontSize: 13),
+                  style: TextStyle(color: context.col.textGray, fontSize: 13),
                 ),
               ],
             ),
@@ -227,7 +276,7 @@ class _AccountCard extends StatelessWidget {
             onPressed: onSignOut,
             icon: const Icon(Icons.logout),
             tooltip: '로그아웃',
-            color: kTextGray,
+            color: context.col.textGray,
           ),
         ],
       ),
@@ -255,7 +304,7 @@ class _StreakCard extends StatelessWidget {
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(20),
-        boxShadow: kCardShadow,
+        boxShadow: context.col.cardShadow,
       ),
       child: Row(
         children: [

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/theme.dart';
 import '../../data/models/youtube_video.dart';
 import '../../domain/feed_dedup.dart';
+import '../../domain/streak_provider.dart';
 import '../../domain/topic_provider.dart';
 import '../../domain/youtube_provider.dart';
 import 'shorts_widget.dart';
@@ -38,10 +39,20 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
   /// 시청한 영상 id (피드 중복 제거용)
   Set<String> _watchedIds = {};
 
+  /// 이번 세션에 학습 활동(스트릭)을 기록했는지
+  bool _streakRecorded = false;
+
   /// 시청 기록에 1회 저장한다. 메모리 집합도 갱신해 다음 페이지에서 제외된다.
+  /// 첫 시청 시 '오늘 학습 활동'으로 스트릭도 기록한다(프로필이 아닌 실제 학습 기준).
   void _onWatched(YoutubeVideo v) {
     _watchedIds.add(v.videoId);
     ref.read(youtubeRepositoryProvider).recordWatched(v);
+    if (!_streakRecorded) {
+      _streakRecorded = true;
+      ref.read(streakRepositoryProvider).recordActivity().then((_) {
+        if (mounted) ref.invalidate(streakProvider);
+      });
+    }
   }
 
   Future<void> _loadWatchedIds() async {
@@ -236,9 +247,20 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
           }
 
           if (stateVideos.isEmpty) {
-            return const Center(
-              child: Text('재생 가능한 영상이 없습니다.',
-                  style: TextStyle(color: Colors.white70)),
+            return Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text('재생 가능한 영상이 없습니다.',
+                      style: TextStyle(color: Colors.white70)),
+                  const SizedBox(height: 12),
+                  ElevatedButton.icon(
+                    onPressed: _refreshing ? null : _refresh,
+                    icon: const Icon(Icons.refresh, size: 18),
+                    label: const Text('새로고침'),
+                  ),
+                ],
+              ),
             );
           }
           return _buildPager(stateVideos);

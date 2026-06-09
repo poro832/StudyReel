@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../../core/theme.dart';
-import '../../core/youtube_launcher.dart';
 import '../../data/models/youtube_video.dart';
 
 /// 썸네일 + 제목 + 채널명으로 구성된 가로 영상 타일.
-/// 탭하면 YouTube 앱(또는 브라우저)으로 외부 실행한다.
+/// 탭하면 앱 안에서 풀스크린으로 재생한다(외부 YouTube로 나가지 않음).
 class VideoListTile extends StatelessWidget {
   final YoutubeVideo video;
   const VideoListTile({super.key, required this.video});
@@ -12,12 +12,12 @@ class VideoListTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () => launchYoutube(video.videoId),
+      onTap: () => context.push('/watch', extra: video),
       child: Container(
         decoration: BoxDecoration(
-          color: kSurfaceColor,
+          color: context.col.surface,
           borderRadius: BorderRadius.circular(16),
-          boxShadow: kCardShadow,
+          boxShadow: context.col.cardShadow,
         ),
         clipBehavior: Clip.antiAlias,
         child: Row(
@@ -33,7 +33,7 @@ class VideoListTile extends StatelessWidget {
                   errorBuilder: (context, error, stack) => Container(
                     width: 140,
                     height: 90,
-                    color: kBgColor,
+                    color: context.col.bg,
                   ),
                 ),
                 Container(
@@ -59,8 +59,8 @@ class VideoListTile extends StatelessWidget {
                       video.title,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                          color: kTextColor,
+                      style: TextStyle(
+                          color: context.col.text,
                           fontSize: 13,
                           fontWeight: FontWeight.w700,
                           height: 1.3),
@@ -70,7 +70,7 @@ class VideoListTile extends StatelessWidget {
                       video.channelTitle,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(color: kTextGray, fontSize: 11),
+                      style: TextStyle(color: context.col.textGray, fontSize: 11),
                     ),
                   ],
                 ),

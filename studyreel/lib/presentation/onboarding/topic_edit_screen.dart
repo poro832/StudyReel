@@ -50,11 +50,11 @@ class _TopicEditScreenState extends ConsumerState<TopicEditScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: kBgColor,
+        backgroundColor: context.col.bg,
         elevation: 0,
-        title: const Text('관심 토픽 변경',
+        title: Text('관심 토픽 변경',
             style: TextStyle(
-                fontSize: 18, fontWeight: FontWeight.w700, color: kTextColor)),
+                fontSize: 18, fontWeight: FontWeight.w700, color: context.col.text)),
       ),
       body: SafeArea(
         child: Padding(
@@ -63,12 +63,12 @@ class _TopicEditScreenState extends ConsumerState<TopicEditScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 16),
-              const Text('관심 있는 분야를\n3개 이상 골라주세요.',
+              Text('관심 있는 분야를\n3개 이상 골라주세요.',
                   style: TextStyle(
                       fontSize: 26,
                       fontWeight: FontWeight.bold,
                       height: 1.3,
-                      color: kTextColor)),
+                      color: context.col.text)),
               const SizedBox(height: 24),
               Wrap(
                 spacing: 12,
@@ -83,17 +83,17 @@ class _TopicEditScreenState extends ConsumerState<TopicEditScreen> {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 20, vertical: 12),
                       decoration: BoxDecoration(
-                        color: isSelected ? kPrimaryColor : kSurfaceColor,
+                        color: isSelected ? kPrimaryColor : context.col.surface,
                         borderRadius: BorderRadius.circular(22),
                         border: Border.all(
-                          color: isSelected ? kPrimaryColor : kBorderColor,
+                          color: isSelected ? kPrimaryColor : context.col.border,
                           width: 1,
                         ),
-                        boxShadow: isSelected ? null : kCardShadow,
+                        boxShadow: isSelected ? null : context.col.cardShadow,
                       ),
                       child: Text(topic,
                           style: TextStyle(
-                              color: isSelected ? Colors.white : kTextColor,
+                              color: isSelected ? Colors.white : context.col.text,
                               fontWeight: isSelected
                                   ? FontWeight.w700
                                   : FontWeight.w500)),
@@ -103,7 +103,7 @@ class _TopicEditScreenState extends ConsumerState<TopicEditScreen> {
               ),
               const Spacer(),
               Text('${_draft.length}개 선택됨',
-                  style: const TextStyle(color: kTextGray),
+                  style: TextStyle(color: context.col.textGray),
                   textAlign: TextAlign.center),
               const SizedBox(height: 12),
               SizedBox(
@@ -113,7 +113,7 @@ class _TopicEditScreenState extends ConsumerState<TopicEditScreen> {
                   onPressed: _isValid && !_saving ? _save : null,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: kPrimaryColor,
-                    disabledBackgroundColor: kBorderColor,
+                    disabledBackgroundColor: context.col.border,
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16)),
                   ),

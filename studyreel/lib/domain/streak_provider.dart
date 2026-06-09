@@ -4,7 +4,8 @@ import '../data/repositories/streak_repository.dart';
 final streakRepositoryProvider =
     Provider<StreakRepository>((_) => StreakRepository());
 
-/// 프로필 진입 시 오늘 활동을 기록하고 갱신된 스트릭을 반환
+/// 현재 스트릭을 '읽기'만 한다(기록은 학습 활동 시점에 feed가 수행).
+/// 프로필 진입만으로 스트릭이 오르던 문제를 바로잡는다.
 final streakProvider = FutureProvider<int>((ref) async {
-  return ref.read(streakRepositoryProvider).recordActivity();
+  return ref.read(streakRepositoryProvider).currentStreak();
 });

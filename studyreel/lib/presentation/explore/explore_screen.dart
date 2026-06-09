@@ -33,13 +33,13 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: kBgColor,
+        backgroundColor: context.col.bg,
         elevation: 0,
-        title: const Text('탐색',
+        title: Text('탐색',
             style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
-                color: kTextColor)),
+                color: context.col.text)),
       ),
       body: Column(
         children: [
@@ -49,12 +49,12 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
               controller: _controller,
               textInputAction: TextInputAction.search,
               onSubmitted: (_) => _submit(),
-              style: const TextStyle(color: kTextColor),
+              style: TextStyle(color: context.col.text),
               decoration: InputDecoration(
                 hintText: '학습 주제나 키워드를 검색하세요',
-                hintStyle: const TextStyle(color: kTextGray),
+                hintStyle: TextStyle(color: context.col.textGray),
                 filled: true,
-                fillColor: kSurfaceColor,
+                fillColor: context.col.surface,
                 prefixIcon: const Icon(Icons.search, color: kPrimaryColor),
                 suffixIcon: IconButton(
                   icon: const Icon(Icons.arrow_forward, color: kPrimaryColor),
@@ -69,16 +69,16 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
           ),
           Expanded(
             child: _query.isEmpty
-                ? const Center(
+                ? Center(
                     child: Text('관심 있는 주제를 검색해보세요',
-                        style: TextStyle(color: kTextGray)),
+                        style: TextStyle(color: context.col.textGray)),
                   )
                 : resultsAsync.when(
                     data: (videos) {
                       if (videos.isEmpty) {
-                        return const Center(
+                        return Center(
                           child: Text('검색 결과가 없습니다.',
-                              style: TextStyle(color: kTextGray)),
+                              style: TextStyle(color: context.col.textGray)),
                         );
                       }
                       return ListView.separated(
@@ -98,14 +98,14 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Text('검색에 실패했습니다.',
-                                style: TextStyle(color: kTextGray)),
+                            Text('검색에 실패했습니다.',
+                                style: TextStyle(color: context.col.textGray)),
                             const SizedBox(height: 8),
-                            const Text(
+                            Text(
                               'YouTube API 일일 한도를 초과했을 수 있습니다.',
                               textAlign: TextAlign.center,
                               style: TextStyle(
-                                  color: kTextGray, fontSize: 12),
+                                  color: context.col.textGray, fontSize: 12),
                             ),
                             const SizedBox(height: 12),
                             ElevatedButton(

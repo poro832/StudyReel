@@ -29,4 +29,15 @@ class TopicRepository {
     final raw = snap.data()?['topics'] as List?;
     return raw?.cast<String>() ?? const [];
   }
+
+  /// 테마 설정(다크 여부)을 저장한다.
+  Future<void> saveThemeDark(bool dark) async {
+    await _userDoc.set({'themeDark': dark}, SetOptions(merge: true));
+  }
+
+  /// 저장된 테마 설정을 불러온다. 없으면 null(기본 다크 사용).
+  Future<bool?> loadThemeDark() async {
+    final snap = await _userDoc.get();
+    return snap.data()?['themeDark'] as bool?;
+  }
 }

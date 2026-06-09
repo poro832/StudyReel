@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/theme.dart';
+import '../../domain/theme_provider.dart';
 import '../../domain/topic_provider.dart';
 
 /// 로그인 후 진입점. 저장된 관심 토픽을 불러와 분기한다.
@@ -22,9 +23,15 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   }
 
   Future<void> _bootstrap() async {
+    final repo = ref.read(topicRepositoryProvider);
     List<String> topics;
     try {
-      topics = await ref.read(topicRepositoryProvider).loadTopics();
+      // 저장된 테마 설정을 먼저 반영(없으면 기본 다크 유지).
+      final dark = await repo.loadThemeDark();
+      if (dark != null && mounted) {
+        ref.read(isDarkProvider.notifier).state = dark;
+      }
+      topics = await repo.loadTopics();
     } catch (_) {
       topics = const [];
     }
