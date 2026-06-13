@@ -7,7 +7,9 @@ cd studyreel
 flutter test
 ```
 
-현재 **15개 단위/위젯 테스트** 통과 (회귀 가드).
+현재 **54개 테스트** 통과 (단위·위젯 + E2E 플로우, 회귀 가드).
+매 푸시/PR마다 GitHub Actions가 `flutter analyze`(0건) + `flutter test`를 자동 실행한다
+([워크플로우](../../.github/workflows/flutter.yml)).
 
 ## 테스트 구성
 
@@ -32,10 +34,17 @@ flutter test
 flutter test test/repositories/streak_repository_test.dart
 ```
 
-## E2E (에뮬레이터 필요)
+## E2E 플로우 (헤드리스)
 
-UI 통합 테스트는 에뮬레이터 환경에서 수동 검증 체크리스트로 대체합니다
-(자동 integration_test는 향후 과제):
+`test/integration/feed_flow_test.dart` — 실제 앱 위젯 트리 + go_router 라우팅 +
+여러 화면 전환 + Firestore 영속을 헤드리스로 검증하는 통합(E2E) 테스트.
+네트워크/WebView는 가짜 서비스로 대체해 흐름에 집중한다:
+
+- 로그인 사용자 + 토픽 없음 → **온보딩** 라우팅
+- 관심 토픽 3개 선택 → "시작하기" → **홈 피드** 진입
+- 저장한 토픽이 Firestore에 **영속**됐는지 확인
+
+기기 레벨(실제 WebView 재생)은 아래 수동 체크리스트로 보완합니다:
 
 - 온보딩 → 관심사 3개 선택 → 시작하기
 - 피드 진입 → YouTube 썸네일 표시 → 탭 시 외부 실행

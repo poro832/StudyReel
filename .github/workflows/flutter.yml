@@ -1,0 +1,34 @@
+name: Flutter CI
+
+# 코드 품질 게이트: 푸시/PR마다 analyze(경고 0건) + 전체 테스트(단위·위젯·E2E 플로우)를
+# 자동 실행한다. (AGENTS.md의 "완료 주장 전 analyze + test" 규칙을 CI로 강제)
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  analyze-and-test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: studyreel
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.35.4'
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Static analysis (0 issues)
+        run: flutter analyze
+
+      - name: Run tests (unit · widget · E2E flow)
+        run: flutter test

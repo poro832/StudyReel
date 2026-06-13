@@ -1,5 +1,7 @@
 # 📚 StudyReel
 
+[![Flutter CI](https://github.com/poro832/StudyReel/actions/workflows/flutter.yml/badge.svg)](https://github.com/poro832/StudyReel/actions/workflows/flutter.yml)
+
 > **YouTube Shorts를 "교육용 피드"로 — 인앱 세로 스와이프 학습 앱**
 > 관심 토픽의 짧은 학습 영상을, 앱을 떠나지 않고 **소리·자동재생으로 바로** 보는 Flutter 모바일 앱
 
