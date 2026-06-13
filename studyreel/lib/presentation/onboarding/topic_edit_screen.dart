@@ -22,7 +22,8 @@ class _TopicEditScreenState extends ConsumerState<TopicEditScreen> {
   @override
   void initState() {
     super.initState();
-    _draft = {...ref.read(selectedTopicsProvider)};
+    // 분류에 없는 옛 토픽(유령)은 칩이 없어 해제 불가하므로 초안에서 제거한다.
+    _draft = sanitizeTopics(ref.read(selectedTopicsProvider)).toSet();
   }
 
   bool get _isValid => _draft.length >= 3;

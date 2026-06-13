@@ -36,7 +36,13 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
       if (level != null && mounted) {
         ref.read(selectedLevelProvider.notifier).state = level;
       }
-      topics = await repo.loadTopics();
+      // 분류 개편으로 사라진 옛 토픽(유령)을 걸러낸다. 일부만 유효하면 정리된
+      // 목록을 1회 다시 저장해 Firestore도 정합 상태로 맞춘다.
+      final saved = await repo.loadTopics();
+      topics = sanitizeTopics(saved);
+      if (topics.isNotEmpty && topics.length != saved.length) {
+        await repo.saveTopics(topics);
+      }
     } catch (_) {
       topics = const [];
     }

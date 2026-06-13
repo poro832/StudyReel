@@ -17,6 +17,12 @@ const kTopicGroups = <String, List<String>>{
 final List<String> kAvailableTopics =
     kTopicGroups.values.expand((e) => e).toList(growable: false);
 
+/// 저장된 토픽 중 현재 분류(kAvailableTopics)에 존재하는 것만 남긴다(순수 함수).
+/// 분류 개편으로 사라진 옛 토픽(예: '컴퓨터과학', '수학')은 칩이 없어 UI로 해제할 수
+/// 없으므로, 로드 경계에서 걸러 피드·선택 화면에 '유령 토픽'이 남지 않게 한다.
+List<String> sanitizeTopics(Iterable<String> topics) =>
+    topics.where(kAvailableTopics.contains).toList();
+
 /// 학습 수준. 검색어에 붙여 수준에 맞는 영상을 우선 검색한다.
 const kLevels = ['초등', '중등', '고등', '대학'];
 const kDefaultLevel = '대학';
