@@ -20,7 +20,8 @@ jobs:
 
       - uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.35.4'
+          # pubspec environment(sdk: ^3.10.0)을 만족하는 Dart 3.10 동봉 버전.
+          flutter-version: '3.38.1'
           channel: stable
           cache: true
 
