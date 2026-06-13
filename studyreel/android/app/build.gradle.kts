@@ -38,9 +38,12 @@ android {
 
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
+            // 배포용 디버그 서명(사이드로드 데모). 정식 출시 시 자체 키스토어로 교체.
             signingConfig = signingConfigs.getByName("debug")
+            // R8 최적화 비활성: youtube_player_iframe가 참조하는 androidx.window
+            // 선택적 클래스(런타임 OEM 제공)로 R8가 실패하므로 데모 빌드는 미적용.
+            isMinifyEnabled = false
+            isShrinkResources = false
         }
     }
 }
