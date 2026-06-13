@@ -136,6 +136,51 @@ void main() {
       );
     });
 
+    test('loadCached(maxAge) — TTL 이내 캐시는 반환', () async {
+      final base = DateTime(2026, 6, 10, 12);
+      final freshRepo = YoutubeRepository(
+        firestore: firestore,
+        auth: auth,
+        now: () => base,
+      );
+      await freshRepo.saveAll([v1]); // cachedAt = base
+      // 2일 뒤 로드, TTL 3일 → 신선
+      final readRepo = YoutubeRepository(
+        firestore: firestore,
+        auth: auth,
+        now: () => base.add(const Duration(days: 2)),
+      );
+      final loaded =
+          await readRepo.loadCached(maxAge: const Duration(days: 3));
+      expect(loaded.map((e) => e.videoId), ['a1']);
+    });
+
+    test('loadCached(maxAge) — TTL 초과 캐시는 만료로 제외', () async {
+      final base = DateTime(2026, 6, 10, 12);
+      final freshRepo =
+          YoutubeRepository(firestore: firestore, auth: auth, now: () => base);
+      await freshRepo.saveAll([v1]); // cachedAt = base
+      // 4일 뒤 로드, TTL 3일 → 만료
+      final readRepo = YoutubeRepository(
+        firestore: firestore,
+        auth: auth,
+        now: () => base.add(const Duration(days: 4)),
+      );
+      final loaded =
+          await readRepo.loadCached(maxAge: const Duration(days: 3));
+      expect(loaded, isEmpty);
+    });
+
+    test('loadCached(maxAge 생략) — TTL 미적용 시 오래돼도 반환', () async {
+      final base = DateTime(2026, 1, 1);
+      final freshRepo =
+          YoutubeRepository(firestore: firestore, auth: auth, now: () => base);
+      await freshRepo.saveAll([v1]);
+      // maxAge 없이 로드 → 나이 무관 반환(loadBookmarked 등 기존 동작 보존)
+      final loaded = await repo.loadCached();
+      expect(loaded.map((e) => e.videoId), ['a1']);
+    });
+
     test('loadBookmarked — 북마크된 영상만 반환', () async {
       await repo.saveAll([v1, v2]);
       await repo.toggleBookmark('a1', true);

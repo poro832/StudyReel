@@ -16,7 +16,9 @@ final youtubeFeedProvider =
   (ref, topicsKey) async {
     final topics = topicsKey.split('|');
     final repo = ref.read(youtubeRepositoryProvider);
-    final cached = await repo.loadCached(topics: topics);
+    // 3일 지난 캐시는 만료로 보고 새 영상을 받아온다(재방문 신선도 ↔ 쿼터 균형).
+    final cached =
+        await repo.loadCached(topics: topics, maxAge: const Duration(days: 3));
     // 선택한 토픽 전부가 캐시에 있을 때만 캐시 사용. 하나라도 없으면
     // (새 카테고리 선택) 새로 받아온다.
     final covered = cached.map((v) => v.topic).toSet();

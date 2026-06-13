@@ -277,7 +277,7 @@ class _ThemeToggleTile extends StatelessWidget {
           ),
           Switch(
             value: isDark,
-            activeColor: kPrimaryColor,
+            activeThumbColor: kPrimaryColor,
             onChanged: onChanged,
           ),
         ],

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:youtube_player_iframe/youtube_player_iframe.dart';
 import '../../core/theme.dart';
 import '../../core/youtube_launcher.dart';
@@ -35,9 +36,13 @@ class ShortsWidget extends StatefulWidget {
   State<ShortsWidget> createState() => _ShortsWidgetState();
 }
 
-class _ShortsWidgetState extends State<ShortsWidget> {
+class _ShortsWidgetState extends State<ShortsWidget>
+    with SingleTickerProviderStateMixin {
   late final YoutubePlayerController _controller;
   StreamSubscription<YoutubePlayerValue>? _sub;
+
+  /// 더블탭 저장 시 중앙에 잠깐 띄우는 북마크 버스트 애니메이션
+  late final AnimationController _burst;
 
   /// 인앱 임베드가 실패하면 true → 썸네일 + 외부 실행 폴백으로 전환
   bool _embedFailed = false;
@@ -65,6 +70,8 @@ class _ShortsWidgetState extends State<ShortsWidget> {
   @override
   void initState() {
     super.initState();
+    _burst = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 650));
     _controller = YoutubePlayerController.fromVideoId(
       videoId: widget.video.videoId,
       autoPlay: widget.isActive && widget.screenVisible,
@@ -90,8 +97,12 @@ class _ShortsWidgetState extends State<ShortsWidget> {
     _sub = _controller.listen((value) {
       // 실제 재생에 도달하면 워치독 해제(정상 영상) + 시청 기록 1회 보고.
       if (value.playerState == PlayerState.playing) {
-        _started = true;
         _watchdog?.cancel();
+        // 첫 재생 도달 시 썸네일 커버를 페이드아웃(검은 로딩 프레임 제거).
+        if (!_started) {
+          _started = true;
+          if (mounted) setState(() {});
+        }
         if (!_reportedWatched) {
           _reportedWatched = true;
           widget.onWatched?.call();
@@ -176,6 +187,7 @@ class _ShortsWidgetState extends State<ShortsWidget> {
   void dispose() {
     _watchdog?.cancel();
     _sub?.cancel();
+    _burst.dispose();
     _controller.close();
     super.dispose();
   }
@@ -186,6 +198,13 @@ class _ShortsWidgetState extends State<ShortsWidget> {
     } else {
       _controller.pauseVideo();
     }
+  }
+
+  /// 더블탭으로 저장(틱톡식). 이미 저장된 영상은 유지하고 버스트만 표시한다.
+  void _onDoubleTapBookmark() {
+    HapticFeedback.mediumImpact();
+    if (!widget.video.isBookmarked) widget.onBookmark();
+    _burst.forward(from: 0);
   }
 
   @override
@@ -213,11 +232,30 @@ class _ShortsWidgetState extends State<ShortsWidget> {
               ),
             ),
 
-          // 2) 탭으로 재생/정지 (세로 스와이프는 PageView로 통과)
+          // 1.5) 재생 도달 전 썸네일 커버 — 스와이프 직후 검은 로딩 프레임을
+          //      가려 '끊김 없는 쇼츠' 느낌을 준다. playing 도달 시 페이드아웃.
+          if (!_embedFailed)
+            Positioned.fill(
+              child: IgnorePointer(
+                child: AnimatedOpacity(
+                  opacity: _started ? 0 : 1,
+                  duration: const Duration(milliseconds: 350),
+                  child: Image.network(
+                    widget.video.thumbnailUrl,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, _, _) =>
+                        const ColoredBox(color: Colors.black),
+                  ),
+                ),
+              ),
+            ),
+
+          // 2) 탭으로 재생/정지, 더블탭으로 저장 (세로 스와이프는 PageView로 통과)
           if (!_embedFailed)
             GestureDetector(
               behavior: HitTestBehavior.opaque,
               onTap: _togglePlay,
+              onDoubleTap: _onDoubleTapBookmark,
             ),
 
           // 3) 일시정지 시 중앙 재생 아이콘
@@ -228,6 +266,29 @@ class _ShortsWidgetState extends State<ShortsWidget> {
                     color: Colors.white70, size: 84),
               ),
             ),
+
+          // 3.5) 더블탭 저장 버스트 — 중앙 북마크가 커졌다 사라진다.
+          IgnorePointer(
+            child: Center(
+              child: AnimatedBuilder(
+                animation: _burst,
+                builder: (_, _) {
+                  final t = _burst.value;
+                  if (t == 0) return const SizedBox.shrink();
+                  final scale = 0.6 + t * 0.7;
+                  final opacity = (t < 0.5 ? t * 2 : (1 - t) * 2).clamp(0.0, 1.0);
+                  return Opacity(
+                    opacity: opacity,
+                    child: Transform.scale(
+                      scale: scale,
+                      child: const Icon(Icons.bookmark_rounded,
+                          color: Colors.white, size: 116),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
 
           // 4) 상단 스크림 — 윗부분은 불투명 블랙으로 YouTube 플레이어가 영상
           //    위에 띄우는 제목 바를 가린다(상태바·AppBar와 겹쳐 잘려 보이던 문제).
@@ -302,6 +363,15 @@ class _ShortsWidgetState extends State<ShortsWidget> {
   }
 
   Widget _buildInfo() {
+    return Semantics(
+      container: true,
+      label: '${widget.video.topic} 주제 학습 영상. '
+          '${widget.video.title}. 채널 ${widget.video.channelTitle}.',
+      child: ExcludeSemantics(child: _buildInfoColumn()),
+    );
+  }
+
+  Widget _buildInfoColumn() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
@@ -356,7 +426,10 @@ class _ShortsWidgetState extends State<ShortsWidget> {
               : Icons.bookmark_border,
           label: widget.video.isBookmarked ? '저장됨' : '저장',
           color: widget.video.isBookmarked ? kPrimaryColor : Colors.white,
-          onTap: widget.onBookmark,
+          onTap: () {
+            HapticFeedback.lightImpact();
+            widget.onBookmark();
+          },
         ),
         const SizedBox(height: 22),
         _actionButton(
@@ -375,22 +448,28 @@ class _ShortsWidgetState extends State<ShortsWidget> {
     required Color color,
     required VoidCallback onTap,
   }) {
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, color: color, size: 34),
-          const SizedBox(height: 4),
-          Text(label,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                shadows: [Shadow(color: Colors.black54, blurRadius: 4)],
-              )),
-        ],
+    return Semantics(
+      button: true,
+      label: label,
+      child: GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: ExcludeSemantics(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, color: color, size: 34),
+              const SizedBox(height: 4),
+              Text(label,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    shadows: [Shadow(color: Colors.black54, blurRadius: 4)],
+                  )),
+            ],
+          ),
+        ),
       ),
     );
   }

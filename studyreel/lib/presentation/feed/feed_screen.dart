@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 import '../../data/models/youtube_video.dart';
@@ -302,6 +303,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
         scrollDirection: Axis.vertical,
         itemCount: list.length,
       onPageChanged: (i) {
+        HapticFeedback.selectionClick(); // 스와이프 전환 촉각 피드백
         setState(() => _currentIndex = i);
         // 끝에서 2번째에 도달하면 다음 묶음을 미리 받아온다(무한 스크롤).
         if (i >= list.length - 2) _loadMore();

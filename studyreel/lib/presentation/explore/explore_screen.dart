@@ -85,7 +85,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                       return ListView.separated(
                         padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
                         itemCount: videos.length,
-                        separatorBuilder: (_, __) =>
+                        separatorBuilder: (_, _) =>
                             const SizedBox(height: 12),
                         itemBuilder: (context, i) =>
                             VideoListTile(video: videos[i]),

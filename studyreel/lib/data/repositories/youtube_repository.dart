@@ -8,13 +8,18 @@ class YoutubeRepository {
   final FirebaseAuth _auth;
   final YoutubeService _service;
 
+  /// 캐시 신선도(cachedAt) 계산용 시계. 테스트에서 주입해 결정적으로 검증한다.
+  final DateTime Function() _now;
+
   YoutubeRepository({
     FirebaseFirestore? firestore,
     FirebaseAuth? auth,
     YoutubeService? service,
+    DateTime Function()? now,
   })  : _firestore = firestore ?? FirebaseFirestore.instance,
         _auth = auth ?? FirebaseAuth.instance,
-        _service = service ?? YoutubeService();
+        _service = service ?? YoutubeService(),
+        _now = now ?? DateTime.now;
 
   String get _uid => _auth.currentUser?.uid ?? 'guest';
 
@@ -27,34 +32,48 @@ class YoutubeRepository {
   /// 캐시된 영상을 읽는다. [topics]가 주어지면 해당 토픽의 영상만 반환한다
   /// (새 카테고리를 고르면 캐시에 없어 재조회가 유도됨). 북마크 조회처럼
   /// 토픽 무관하게 전부 필요할 때는 [topics]를 생략한다.
-  Future<List<YoutubeVideo>> loadCached({List<String>? topics}) async {
+  /// [maxAge]를 주면 그보다 오래된(또는 cachedAt이 없는 구버전) 캐시는 만료로
+  /// 보고 제외해, 재방문 사용자에게도 신선한 영상이 재조회되도록 한다.
+  Future<List<YoutubeVideo>> loadCached(
+      {List<String>? topics, Duration? maxAge}) async {
     final snap = await _videosRef.get();
-    return snap.docs
-        .map((d) {
-          final data = d.data();
-          return YoutubeVideo(
-            videoId: data['videoId'] as String,
-            title: data['title'] as String,
-            channelTitle: data['channelTitle'] as String,
-            topic: data['topic'] as String,
-            thumbnailUrl: data['thumbnailUrl'] as String,
-            isBookmarked: data['isBookmarked'] as bool? ?? false,
-            embeddable: data['embeddable'] as bool? ?? false,
-            durationSeconds: data['durationSeconds'] as int? ?? 0,
-          );
-        })
-        // 임베드 가능 + 60초 이하 쇼츠만 노출. 해당 필드 없는 구버전 캐시는
-        // 자동 제외되어 fetchAndCache로 재조회를 유도한다.
-        .where((v) =>
-            v.embeddable &&
-            v.durationSeconds > 0 &&
-            v.durationSeconds <= 60 &&
-            (topics == null || topics.contains(v.topic)))
-        .toList();
+    final nowMs = _now().millisecondsSinceEpoch;
+    final out = <YoutubeVideo>[];
+    for (final d in snap.docs) {
+      final data = d.data();
+      // TTL: cachedAt이 없거나(구버전 캐시) maxAge를 초과하면 만료로 제외 →
+      // youtubeFeedProvider가 fetchAndCache로 신선한 영상을 받아온다.
+      if (maxAge != null) {
+        final cachedAt = data['cachedAt'] as int?;
+        if (cachedAt == null || nowMs - cachedAt > maxAge.inMilliseconds) {
+          continue;
+        }
+      }
+      final v = YoutubeVideo(
+        videoId: data['videoId'] as String,
+        title: data['title'] as String,
+        channelTitle: data['channelTitle'] as String,
+        topic: data['topic'] as String,
+        thumbnailUrl: data['thumbnailUrl'] as String,
+        isBookmarked: data['isBookmarked'] as bool? ?? false,
+        embeddable: data['embeddable'] as bool? ?? false,
+        durationSeconds: data['durationSeconds'] as int? ?? 0,
+      );
+      // 임베드 가능 + 60초 이하 쇼츠만 노출. 해당 필드 없는 구버전 캐시는
+      // 자동 제외되어 fetchAndCache로 재조회를 유도한다.
+      if (v.embeddable &&
+          v.durationSeconds > 0 &&
+          v.durationSeconds <= 60 &&
+          (topics == null || topics.contains(v.topic))) {
+        out.add(v);
+      }
+    }
+    return out;
   }
 
   Future<void> saveAll(List<YoutubeVideo> videos) async {
     final batch = _firestore.batch();
+    final cachedAt = _now().millisecondsSinceEpoch;
     for (final v in videos) {
       batch.set(_videosRef.doc(v.videoId), {
         'videoId': v.videoId,
@@ -65,6 +84,7 @@ class YoutubeRepository {
         'isBookmarked': v.isBookmarked,
         'embeddable': v.embeddable,
         'durationSeconds': v.durationSeconds,
+        'cachedAt': cachedAt,
       });
     }
     await batch.commit();
@@ -94,6 +114,7 @@ class YoutubeRepository {
     final snap = await _videosRef.get();
     final bookmarkedIds = <String>{};
     final batch = _firestore.batch();
+    final cachedAt = _now().millisecondsSinceEpoch;
     for (final doc in snap.docs) {
       final data = doc.data();
       if (data['isBookmarked'] == true) bookmarkedIds.add(doc.id);
@@ -114,6 +135,7 @@ class YoutubeRepository {
         'isBookmarked': bookmarkedIds.contains(v.videoId),
         'embeddable': v.embeddable,
         'durationSeconds': v.durationSeconds,
+        'cachedAt': cachedAt,
       });
     }
     await batch.commit();
