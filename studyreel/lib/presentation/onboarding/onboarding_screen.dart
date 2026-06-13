@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/theme.dart';
 import '../../domain/topic_provider.dart';
+import '../common/topic_picker.dart';
 
 class OnboardingScreen extends ConsumerWidget {
   const OnboardingScreen({super.key});
@@ -37,69 +38,57 @@ class OnboardingScreen extends ConsumerWidget {
               Text('3개 이상 선택해 주세요.',
                   style: TextStyle(color: context.col.textGray)),
               const SizedBox(height: 32),
-              Wrap(
-                spacing: 12,
-                runSpacing: 12,
-                children: kAvailableTopics.map((topic) {
-                  final isSelected = selected.contains(topic);
-                  return GestureDetector(
-                    onTap: () => notifier.toggle(topic),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 20, vertical: 12),
-                      decoration: BoxDecoration(
-                        color: isSelected ? kPrimaryColor : context.col.surface,
-                        borderRadius: BorderRadius.circular(22),
-                        border: Border.all(
-                          color: isSelected ? kPrimaryColor : context.col.border,
-                          width: 1,
-                        ),
-                        boxShadow: isSelected ? null : context.col.cardShadow,
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      TopicPicker(
+                        selected: selected,
+                        onToggle: notifier.toggle,
                       ),
-                      child: Text(topic,
+                      const SizedBox(height: 24),
+                      Text('학습 수준',
                           style: TextStyle(
-                              color: isSelected ? Colors.white : context.col.text,
-                              fontWeight: isSelected
-                                  ? FontWeight.w700
-                                  : FontWeight.w500)),
-                    ),
-                  );
-                }).toList(),
-              ),
-              const SizedBox(height: 28),
-              Text('학습 수준',
-                  style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: context.col.text)),
-              const SizedBox(height: 12),
-              Wrap(
-                spacing: 10,
-                children: kLevels.map((l) {
-                  final on = level == l;
-                  return GestureDetector(
-                    onTap: () =>
-                        ref.read(selectedLevelProvider.notifier).state = l,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 18, vertical: 10),
-                      decoration: BoxDecoration(
-                        color: on ? kPrimaryColor : context.col.surface,
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                            color: on ? kPrimaryColor : context.col.border),
-                        boxShadow: on ? null : context.col.cardShadow,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              color: context.col.text)),
+                      const SizedBox(height: 12),
+                      Wrap(
+                        spacing: 10,
+                        children: kLevels.map((l) {
+                          final on = level == l;
+                          return GestureDetector(
+                            onTap: () =>
+                                ref.read(selectedLevelProvider.notifier).state =
+                                    l,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 18, vertical: 10),
+                              decoration: BoxDecoration(
+                                color: on ? kPrimaryColor : context.col.surface,
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                    color:
+                                        on ? kPrimaryColor : context.col.border),
+                                boxShadow: on ? null : context.col.cardShadow,
+                              ),
+                              child: Text(l,
+                                  style: TextStyle(
+                                      color:
+                                          on ? Colors.white : context.col.text,
+                                      fontWeight: on
+                                          ? FontWeight.w700
+                                          : FontWeight.w500)),
+                            ),
+                          );
+                        }).toList(),
                       ),
-                      child: Text(l,
-                          style: TextStyle(
-                              color: on ? Colors.white : context.col.text,
-                              fontWeight:
-                                  on ? FontWeight.w700 : FontWeight.w500)),
-                    ),
-                  );
-                }).toList(),
+                      const SizedBox(height: 8),
+                    ],
+                  ),
+                ),
               ),
-              const Spacer(),
               Text('${selected.length}개 선택됨',
                   style: TextStyle(color: context.col.textGray),
                   textAlign: TextAlign.center),

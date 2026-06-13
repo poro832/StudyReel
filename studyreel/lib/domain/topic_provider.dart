@@ -1,10 +1,21 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/repositories/topic_repository.dart';
 
-const kAvailableTopics = [
-  '컴퓨터과학', '수학', '영어', '역사',
-  '과학', '경제', '디자인', '심리학',
-];
+/// 학습 카테고리 → 세부 토픽. 세부 토픽 문자열이 곧 YouTube 검색어가 되므로
+/// (`[토픽, 수준, 접미사].join(' ')`), 구체적일수록 교육 콘텐츠 매칭이 정확해져
+/// 예능 혼입이 줄어든다. 키(이모지 포함)는 표시용 헤더, 값만 선택 대상이다.
+const kTopicGroups = <String, List<String>>{
+  '💻 컴퓨터·IT': ['알고리즘', '자료구조', '웹개발', '인공지능', '데이터베이스', '네트워크'],
+  '🔢 수학': ['미적분', '선형대수', '확률·통계', '기하'],
+  '🔬 과학': ['물리', '화학', '생명과학', '천문·우주'],
+  '🗣️ 어학': ['영어회화', '영문법', '토익·토플'],
+  '📚 인문·사회': ['역사', '철학', '심리학', '경제'],
+  '🎨 예술·디자인': ['디자인', '음악이론', '영화'],
+};
+
+/// 전체 세부 토픽(평면) — 검증·시드용.
+final List<String> kAvailableTopics =
+    kTopicGroups.values.expand((e) => e).toList(growable: false);
 
 /// 학습 수준. 검색어에 붙여 수준에 맞는 영상을 우선 검색한다.
 const kLevels = ['초등', '중등', '고등', '대학'];

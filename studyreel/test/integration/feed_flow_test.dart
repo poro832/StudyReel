@@ -70,10 +70,10 @@ void main() {
     await _advance(tester);
     expect(find.text('어떤 걸\n배우고 싶나요?'), findsOneWidget);
 
-    // 관심 토픽 3개 선택
-    await tester.tap(find.text('컴퓨터과학'));
-    await tester.tap(find.text('수학'));
-    await tester.tap(find.text('영어'));
+    // 관심 토픽 3개 선택 (첫 그룹 '컴퓨터·IT' 세부 토픽)
+    await tester.tap(find.text('알고리즘'));
+    await tester.tap(find.text('자료구조'));
+    await tester.tap(find.text('웹개발'));
     await tester.pump();
     expect(find.text('3개 선택됨'), findsOneWidget);
 
@@ -88,6 +88,6 @@ void main() {
     // 저장한 토픽이 실제로 영속화됐는지 확인(통합 관점)
     final saved =
         await TopicRepository(firestore: firestore, auth: auth).loadTopics();
-    expect(saved, containsAll(['컴퓨터과학', '수학', '영어']));
+    expect(saved, containsAll(['알고리즘', '자료구조', '웹개발']));
   });
 }

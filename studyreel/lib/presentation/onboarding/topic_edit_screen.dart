@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/theme.dart';
 import '../../domain/topic_provider.dart';
 import '../../domain/youtube_provider.dart';
+import '../common/topic_picker.dart';
 
 /// 프로필에서 진입하는 관심 토픽 변경 화면.
 /// 현재 토픽을 로컬 초안으로 편집하고, 저장 시에만 영속화·피드 반영한다.
@@ -69,39 +70,20 @@ class _TopicEditScreenState extends ConsumerState<TopicEditScreen> {
                       fontWeight: FontWeight.bold,
                       height: 1.3,
                       color: context.col.text)),
-              const SizedBox(height: 24),
-              Wrap(
-                spacing: 12,
-                runSpacing: 12,
-                children: kAvailableTopics.map((topic) {
-                  final isSelected = _draft.contains(topic);
-                  return GestureDetector(
-                    onTap: () => setState(() {
-                      isSelected ? _draft.remove(topic) : _draft.add(topic);
+              const SizedBox(height: 20),
+              Expanded(
+                child: SingleChildScrollView(
+                  child: TopicPicker(
+                    selected: _draft,
+                    onToggle: (topic) => setState(() {
+                      _draft.contains(topic)
+                          ? _draft.remove(topic)
+                          : _draft.add(topic);
                     }),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 20, vertical: 12),
-                      decoration: BoxDecoration(
-                        color: isSelected ? kPrimaryColor : context.col.surface,
-                        borderRadius: BorderRadius.circular(22),
-                        border: Border.all(
-                          color: isSelected ? kPrimaryColor : context.col.border,
-                          width: 1,
-                        ),
-                        boxShadow: isSelected ? null : context.col.cardShadow,
-                      ),
-                      child: Text(topic,
-                          style: TextStyle(
-                              color: isSelected ? Colors.white : context.col.text,
-                              fontWeight: isSelected
-                                  ? FontWeight.w700
-                                  : FontWeight.w500)),
-                    ),
-                  );
-                }).toList(),
+                  ),
+                ),
               ),
-              const Spacer(),
+              const SizedBox(height: 12),
               Text('${_draft.length}개 선택됨',
                   style: TextStyle(color: context.col.textGray),
                   textAlign: TextAlign.center),
