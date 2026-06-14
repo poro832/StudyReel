@@ -20,7 +20,7 @@ style: |
 
 이동찬 · 2026-06 · 클라우드 캡스톤
 
-<span class="small">GitHub: github.com/poro832/StudyReel · 데모 APK: poro832.github.io/studyreel-deck/app</span>
+<span class="small">GitHub: github.com/poro832/StudyReel · 데모 APK: poro832.github.io/studyreel-final/app</span>
 
 ---
 
@@ -50,7 +50,7 @@ style: |
 
 ## 3. 프로젝트 계획 — WBS & 기술 스택
 
-**WBS** (MoSCoW 우선순위, 진행 현황: poro832.github.io/studyreel-deck/wbs.html)
+**WBS** (MoSCoW 우선순위, 진행 현황: poro832.github.io/studyreel-final/wbs.html)
 
 - **Must**: 온보딩(토픽 선택) → 인앱 Shorts 피드 → 북마크/저장 ✅
 - **Should**: 탐색 검색 · 프로필 · 학습 스트릭 · 로그인 ✅
@@ -209,7 +209,7 @@ presentation/ (Flutter UI)  ── watch ──▶  domain/ (Riverpod Provider)
 
 > ### StudyReel — 스크롤 중독을 학습 습관으로. 감사합니다.
 
-<span class="small">github.com/poro832/StudyReel · APK: poro832.github.io/studyreel-deck/app</span>
+<span class="small">github.com/poro832/StudyReel · APK: poro832.github.io/studyreel-final/app</span>
 
 ---
 
