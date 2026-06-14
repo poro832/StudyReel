@@ -76,7 +76,7 @@ style: |
                                   로그인·시청기록·무한스크롤·보안규칙 → 완료
 ```
 
-- 커밋 **58건** · ADR **5건** · 데드코드 7파일 청산(피벗 시)
+- 커밋 **67건** · ADR **5건** · 데드코드 7파일 청산(피벗 시)
 - Must/Should/Could **전 항목 완료** — 릴리스 APK 배포 중
 - 피벗 근거: Gemini 무료 토큰 한도 실측 → **데이터로 방향 전환** (ADR-0004)
 
@@ -132,7 +132,7 @@ presentation/ (Flutter UI)  ── watch ──▶  domain/ (Riverpod Provider)
 
 | 종류 | 도구 | 개수 | 대상 |
 |---|---|---|---|
-| **단위/위젯 테스트** | flutter_test + fake_cloud_firestore + firebase_auth_mocks | **50개** | 캐시·북마크·스트릭·중복제거·토픽·서비스 필터 |
+| **단위·위젯·E2E** | flutter_test + fake_cloud_firestore + firebase_auth_mocks | **57개** | 캐시·북마크·스트릭·중복제거·토픽·서비스 필터 |
 | **통합 테스트** | @firebase/rules-unit-testing (에뮬레이터) | **4개** | Firestore 보안 규칙 — 내 데이터만 읽기/쓰기 |
 
 - 시간 의존 로직(스트릭)은 `now` 콜백 주입 → **결정적 테스트**
@@ -231,7 +231,7 @@ studyreel/
 │   │   └── services/      # YoutubeService (API 원시 호출)
 │   ├── domain/          # Riverpod Provider 6종
 │   └── presentation/    # onboarding / feed / explore / profile / common
-├── test/                # 단위·위젯 50개
+├── test/                # 단위·위젯·E2E 57개
 ├── firestore-tests/     # 보안 규칙 통합 테스트 4개
 ├── docs/                # setup / deploy / testing / architecture / blog
 └── .planning/decisions/ # ADR 0001~0005
@@ -267,4 +267,4 @@ FeedScreen ─watch→ youtubeFeedProvider ─→ YoutubeRepository
 - 피드 재진입: API 호출 **0회** (캐시 히트)
 - YouTube search 1회 = 100 units → 일 한도 10,000 units 내 설계
 - 재생불가 영상: 3초 워치독 → 자동 스킵 (UX 끊김 최소화)
-- 테스트 스위트: 50 + 4 전체 그린, analyze 경고 0
+- 테스트: 57 + 통합 4 전체 그린, analyze 경고 0
