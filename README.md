@@ -25,7 +25,7 @@
 - **무엇** — 토픽을 고르면 교육용 YouTube Shorts가 세로 피드로 흐르고, **앱 안에서 소리와 함께 자동재생**됩니다. 틱톡/릴스의 소비 경험을 *학습 콘텐츠*로 바꾼 앱.
 - **왜 어려웠나** — YouTube는 Shorts의 서드파티 임베드를 막아둡니다(`error 152`). 이걸 뚫지 못하면 "인앱 학습 피드"라는 컨셉 자체가 성립하지 않습니다.
 - **어떻게 풀었나** — 임베드 호스트를 `youtube-nocookie`로 교체해 152를 우회하고, **실기기(Galaxy Z Fold7)에서 직접 검증**했습니다.
-- **어떻게 만들었나** — 1인 개발 + **다중 AI(Claude/GPT/Gemini) 오케스트레이션**, TDD(19개 테스트), ADR 기반 의사결정.
+- **어떻게 만들었나** — 1인 개발 + **다중 AI(Claude/GPT/Gemini) 오케스트레이션**, TDD(테스트 61개 = 단위·위젯·E2E 57 + Firestore 보안 규칙 4), ADR 기반 의사결정.
 
 ---
 
@@ -74,7 +74,7 @@
 | **콘텐츠 API** | YouTube Data API v3 (search · videos.list) |
 | **인앱 플레이어** | youtube_player_iframe (WebView IFrame, `youtube-nocookie` 호스트) |
 | **외부 실행** | url_launcher (탐색 화면 → YouTube 앱 연동) |
-| **테스트** | flutter_test · fake_cloud_firestore · firebase_auth_mocks (19 tests) |
+| **테스트** | flutter_test · fake_cloud_firestore · firebase_auth_mocks · @firebase/rules-unit-testing (61 tests: 단위·위젯·E2E 57 + 보안 규칙 4) |
 
 ---
 
@@ -83,19 +83,26 @@
 ```
 studyreel/
 ├── lib/
-│   ├── core/                      # 테마, 라우터, youtube_launcher
+│   ├── core/                      # router, theme, youtube_launcher
 │   ├── data/
 │   │   ├── models/                # YoutubeVideo
-│   │   ├── repositories/          # Youtube/Streak/Auth Repository
+│   │   ├── repositories/          # youtube · streak · auth · topic
 │   │   └── services/              # YoutubeService (YouTube Data API)
-│   ├── domain/                    # Riverpod 프로바이더
+│   ├── domain/                    # Riverpod 프로바이더 (auth·streak·theme·topic·youtube·feed_dedup)
 │   ├── presentation/
-│   │   ├── onboarding/            # 관심사 선택 화면
+│   │   ├── splash/                # 스플래시 (토픽 정합성 보정)
+│   │   ├── auth/                  # 로그인
+│   │   ├── onboarding/            # 토픽 선택 + 토픽 편집
+│   │   ├── home/                  # 홈 셸 (하단 내비)
 │   │   ├── feed/                  # 인앱 Shorts 피드 (ShortsWidget)
-│   │   ├── explore/               # 키워드 검색 화면
+│   │   ├── explore/               # 키워드 검색
+│   │   ├── watch/                 # 영상 보기
 │   │   ├── profile/               # 프로필 + 학습 스트릭
-│   │   └── common/                # 공유 위젯
+│   │   └── common/                # 공유 위젯 (TopicPicker·VideoListTile·BrandedLoader)
+│   ├── firebase_options.dart
 │   └── main.dart
+├── test/                          # 단위·위젯·E2E (domain·repositories·services·integration)
+├── firestore-tests/               # Firestore 보안 규칙 통합 테스트
 ├── docs/                          # setup/deploy/testing/architecture + blog
 ├── .planning/decisions/           # ADR 0001~0005
 └── android/
